@@ -121,7 +121,7 @@ A robust task management system built with **Node.js** and **Express**, demonstr
 
 ### 📖 Documentation
 
-Full setup instructions, API documentation, and usage guide available in the [task-manager README](./task-manager/README.md).
+Full setup instructions, API documentation, and usage guide available in the [task-manager README](https://github.com/MiniDevHub/Small-Projects/tree/main/01-task-manager-api#readme).
 
 ---
 
@@ -162,7 +162,7 @@ A complete **full-stack e-commerce application** combining **Django** (backend) 
 
 ### 📖 Documentation
 
-Complete setup guide, architecture overview, and feature documentation in the [e-bike-store README](./e-bike-store/README.md).
+Complete setup guide, architecture overview, and feature documentation in the [e-bike-store README](https://github.com/MiniDevHub/Small-Projects/blob/main/02-E-Bike/README.md).
 
 ---
 
