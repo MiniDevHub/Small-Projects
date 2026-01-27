@@ -756,14 +756,14 @@ npm run dev
 
 ## 🏆 Key Achievements
 
-✅ Complete authentication system with JWT
-✅ Multi-role access control working
-✅ Order workflow (dealer → admin approval)
-✅ Sales with automatic warranty activation
-✅ Service tracking (free vs paid services)
-✅ Attendance system with auto-logout
-✅ Management commands for utilities
-✅ Clean, documented code structure
+✅ Complete authentication system with JWT <br>
+✅ Multi-role access control working <br>
+✅ Order workflow (dealer → admin approval) <br>
+✅ Sales with automatic warranty activation <br>
+✅ Service tracking (free vs paid services) <br>
+✅ Attendance system with auto-logout <br>
+✅ Management commands for utilities <br>
+✅ Clean, documented code structure <br>
 
 </div>
 
@@ -773,10 +773,10 @@ npm run dev
 
 ## 📞 Project Info
 
-**Original Website:** https://ebikepoint.co.in/
-**Contact:** +91 7980598210 | enicontrol@yahoo.com
-**Stack:** Django + React + MongoDB
-**Status:** Backend 90% → Frontend Next
+**Original Website:** https://ebikepoint.co.in/ <br>
+**Contact:** +91 7980598210 | enicontrol@yahoo.com <br>
+**Stack:** Django + React + MongoDB <br>
+**Status:** Backend 90% → Frontend Next <br>
 
 ---
 
@@ -785,8 +785,5 @@ npm run dev
 **Backend:** 90% Complete ✅ | **Frontend:** Ready to Build 🚀
 
 ---
-
-_This README contains everything needed to understand and continue the project._
-_Share this in any new chat to pick up exactly where you left off!_
 
 </div>
