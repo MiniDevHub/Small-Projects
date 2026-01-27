@@ -1,0 +1,16 @@
+Django==5.0.1
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+mongoengine==0.28.2
+pymongo==4.6.0
+python-decouple==3.8
+Pillow>=10.3.0
+celery==5.3.6
+redis==5.0.1
+channels==4.0.0
+channels-redis==4.1.0
+reportlab==4.0.9
+daphne==4.0.0
+gunicorn==21.2.0
+bcrypt==4.1.2
