@@ -1,0 +1,1507 @@
+{
+  "info": {
+    "name": "E-Bike Point ERP - Complete API v2.0",
+    "description": "Complete API collection with Authentication, Products, Orders, Billing, Inventory, Attendance, Service, Notifications, and Analytics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "41713930"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "dealer_id",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    },
+    {
+      "key": "sale_id",
+      "value": ""
+    },
+    {
+      "key": "service_id",
+      "value": ""
+    },
+    {
+      "key": "notification_id",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.tokens) {",
+                  "        pm.collectionVariables.set('access_token', jsonData.tokens.access);",
+                  "        pm.collectionVariables.set('refresh_token', jsonData.tokens.refresh);",
+                  "        pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "        console.log('✅ Customer registered!');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"customer@test.com\",\n    \"username\": \"testcustomer\",\n    \"password\": \"Test@1234\",\n    \"confirm_password\": \"Test@1234\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register", ""]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Dealer (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success) {",
+                  "        pm.collectionVariables.set('dealer_id', jsonData.dealer.id);",
+                  "        console.log('✅ Dealer registered!');",
+                  "        console.log('Dealer ID:', jsonData.dealer.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"dealer@ebike.com\",\n    \"password\": \"Dealer@1234\",\n    \"confirm_password\": \"Dealer@1234\",\n    \"first_name\": \"Rahul\",\n    \"last_name\": \"Sharma\",\n    \"phone\": \"9988776655\",\n    \"dealership_name\": \"Sharma E-Bike Store\",\n    \"address\": \"Shop 12, MG Road\",\n    \"city\": \"Bangalore\",\n    \"state\": \"Karnataka\",\n    \"pincode\": \"560001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register-dealer/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register-dealer", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.tokens) {",
+                  "        pm.collectionVariables.set('access_token', jsonData.tokens.access);",
+                  "        pm.collectionVariables.set('refresh_token', jsonData.tokens.refresh);",
+                  "        pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "        console.log('✅ Login successful!');",
+                  "        console.log('Role:', jsonData.user.role);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"customer@test.com\",\n    \"password\": \"Test@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", ""]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/profile/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"John Updated\",\n    \"phone\": \"9876543211\",\n    \"address\": \"123 Main Street\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/profile/update/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile", "update", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"old_password\": \"Test@1234\",\n    \"new_password\": \"NewTest@1234\",\n    \"confirm_password\": \"NewTest@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "change-password", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.access) {",
+                  "        pm.collectionVariables.set('access_token', jsonData.access);",
+                  "        console.log('✅ Token refreshed!');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "token", "refresh", ""]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('access_token', '');",
+                  "    pm.collectionVariables.set('refresh_token', '');",
+                  "    console.log('✅ Logged out!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/logout/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Products",
+      "item": [
+        {
+          "name": "List Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/?featured=true&limit=6",
+              "host": ["{{base_url}}"],
+              "path": ["products", ""],
+              "query": [
+                {
+                  "key": "featured",
+                  "value": "true"
+                },
+                {
+                  "key": "limit",
+                  "value": "6"
+                },
+                {
+                  "key": "search",
+                  "value": "lightning",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "electric-scooter",
+                  "disabled": true
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by Slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/:slug/",
+              "host": ["{{base_url}}"],
+              "path": ["products", ":slug", ""],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "super-bike-lightning"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.product) {",
+                  "        pm.collectionVariables.set('product_id', jsonData.product.id);",
+                  "        console.log('✅ Product created!');",
+                  "        console.log('Product ID:', jsonData.product.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Super Bike LIGHTNING\",\n    \"slug\": \"super-bike-lightning\",\n    \"model\": \"LIGHTNING\",\n    \"description\": \"High-speed electric bike with advanced features\",\n    \"specifications\": {\n        \"range_km\": \"50-60 KM\",\n        \"battery_type\": \"Lithium-ion\",\n        \"battery_capacity\": \"48V 24Ah\",\n        \"top_speed\": \"50 km/h\",\n        \"charging_time\": \"4-5 hours\",\n        \"motor_power\": \"1000W\",\n        \"weight\": \"80 kg\",\n        \"load_capacity\": \"150 kg\",\n        \"colors\": [\"Black\", \"Red\", \"Blue\"]\n    },\n    \"base_price\": 45000,\n    \"dealer_price\": 40000,\n    \"mrp\": 50000,\n    \"tax_rate\": 18.0,\n    \"service_charges\": {\n        \"standard_service\": 500,\n        \"major_service\": 1000,\n        \"repair\": 500,\n        \"inspection\": 300\n    },\n    \"warranty\": {\n        \"free_services\": 4,\n        \"warranty_period_months\": 24,\n        \"terms\": \"2 years warranty with 4 free services\"\n    },\n    \"total_stock\": 100,\n    \"is_available\": true,\n    \"is_featured\": true,\n    \"category\": \"electric-scooter\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/create/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "create", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"base_price\": 47000,\n    \"mrp\": 52000,\n    \"is_featured\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/update/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "update", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/delete/",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "delete", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Orders",
+      "item": [
+        {
+          "name": "Dealer Orders (Dealer → Admin)",
+          "item": [
+            {
+              "name": "Create Dealer Order (Dealer)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    if (jsonData.success && jsonData.order) {",
+                      "        pm.collectionVariables.set('order_id', jsonData.order.id);",
+                      "        console.log('✅ Dealer order created!');",
+                      "        console.log('Order Number:', jsonData.order.order_number);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"items\": [\n        {\n            \"product_id\": \"{{product_id}}\",\n            \"quantity\": 5\n        }\n    ],\n    \"dealer_notes\": \"Urgent requirement for festival season\",\n    \"shipping_address\": \"Shop 12, MG Road, Bangalore\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/create/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "create", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Dealer Orders",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/?status=pending",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", ""],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "pending"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Dealer Order Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/{{order_id}}/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "{{order_id}}", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Approve Dealer Order (Admin)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"admin_notes\": \"Order approved and will be shipped soon\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/{{order_id}}/approve/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "{{order_id}}", "approve", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Reject Dealer Order (Admin)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"rejection_reason\": \"Insufficient stock\",\n    \"admin_notes\": \"Please reorder after 2 weeks\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/{{order_id}}/reject/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "{{order_id}}", "reject", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark as Shipped (Admin)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"tracking_number\": \"TRACK123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/{{order_id}}/ship/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "{{order_id}}", "ship", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Mark as Delivered",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/orders/dealer/{{order_id}}/deliver/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "dealer", "{{order_id}}", "deliver", ""]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Customer Orders (Customer → Dealer)",
+          "item": [
+            {
+              "name": "Create Customer Order",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"dealer_id\": \"{{dealer_id}}\",\n    \"items\": [\n        {\n            \"product_id\": \"{{product_id}}\",\n            \"quantity\": 1\n        }\n    ],\n    \"customer_name\": \"John Doe\",\n    \"customer_phone\": \"9876543210\",\n    \"customer_email\": \"john@example.com\",\n    \"delivery_address\": \"123 Main Street, Mumbai\",\n    \"is_home_delivery\": true,\n    \"amount_paid\": 5000.0,\n    \"payment_method\": \"upi\",\n    \"customer_notes\": \"Please deliver on weekend\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/customer/create/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "customer", "create", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Customer Orders",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/orders/customer/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "customer", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Order Status (Dealer/Employee)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"confirmed\",\n    \"dealer_notes\": \"Order confirmed, preparing for delivery\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/customer/{{order_id}}/status/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "customer", "{{order_id}}", "status", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Payment Status",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"amount_paid\": 10000.0,\n    \"payment_method\": \"cash\",\n    \"dealer_notes\": \"Full payment received\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/orders/customer/{{order_id}}/payment/",
+                  "host": ["{{base_url}}"],
+                  "path": ["orders", "customer", "{{order_id}}", "payment", ""]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Billing/Sales",
+      "item": [
+        {
+          "name": "Create Sale (Dealer/Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.sale) {",
+                  "        pm.collectionVariables.set('sale_id', jsonData.sale.id);",
+                  "        console.log('✅ Sale created!');",
+                  "        console.log('Invoice:', jsonData.sale.invoice_number);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer_id\": \"{{user_id}}\",\n    \"items\": [\n        {\n            \"product_id\": \"{{product_id}}\",\n            \"quantity\": 1,\n            \"discount\": 0,\n            \"tax_rate\": 18.0\n        }\n    ],\n    \"discount\": 0,\n    \"payment_method\": \"cash\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/billing/sales/create/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", "create", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sale (Walk-in Customer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"customer\": {\n        \"name\": \"Rajesh Kumar\",\n        \"phone\": \"9876543210\",\n        \"email\": \"rajesh@example.com\",\n        \"address\": \"123 Street, Delhi\"\n    },\n    \"items\": [\n        {\n            \"product_id\": \"{{product_id}}\",\n            \"quantity\": 1,\n            \"discount\": 2000\n        }\n    ],\n    \"discount\": 0,\n    \"payment_method\": \"upi\",\n    \"payment_details\": {\n        \"transaction_id\": \"UPI123456\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/billing/sales/create/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", "create", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/sales/?payment_status=paid",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", ""],
+              "query": [
+                {
+                  "key": "payment_status",
+                  "value": "paid"
+                },
+                {
+                  "key": "delivery_status",
+                  "value": "pending",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sale Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/sales/{{sale_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", "{{sale_id}}", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Delivery Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"delivery_status\": \"delivered\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/billing/sales/{{sale_id}}/delivery/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", "{{sale_id}}", "delivery", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Purchases",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/customer/purchases/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "customer", "purchases", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sales Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/billing/sales/dashboard/",
+              "host": ["{{base_url}}"],
+              "path": ["billing", "sales", "dashboard", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Inventory",
+      "item": [
+        {
+          "name": "Get Dealer Inventory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/?low_stock=false",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", ""],
+              "query": [
+                {
+                  "key": "low_stock",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Low Stock Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/low-stock/",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "low-stock", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory Item",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/:inventory_id/",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", ":inventory_id", ""],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust Inventory (Dealer)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity_change\": -2,\n    \"transaction_type\": \"damage\",\n    \"notes\": \"2 units damaged during delivery\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/inventory/:inventory_id/adjust/",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", ":inventory_id", "adjust", ""],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/:inventory_id/transactions/",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", ":inventory_id", "transactions", ""],
+              "variable": [
+                {
+                  "key": "inventory_id",
+                  "value": "inventory_id_here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Dealer Inventories (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/admin/all/?dealer_id={{dealer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "admin", "all", ""],
+              "query": [
+                {
+                  "key": "dealer_id",
+                  "value": "{{dealer_id}}"
+                },
+                {
+                  "key": "low_stock",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dealer Inventory by Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/inventory/admin/dealer/{{dealer_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["inventory", "admin", "dealer", "{{dealer_id}}", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Attendance",
+      "item": [
+        {
+          "name": "Clock In (Employee/Serviceman)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/clock-in/",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "clock-in", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clock Out",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notes\": \"Completed all tasks for today\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance/clock-out/",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "clock-out", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Today's Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/today/",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "today", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/my/?month=2026-02",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "my", ""],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-02"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Staff Attendance (Dealer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/?month=2026-02&status=present",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", ""],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-02"
+                },
+                {
+                  "key": "status",
+                  "value": "present"
+                },
+                {
+                  "key": "user_id",
+                  "value": "user_id_here",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Attendance (Dealer)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"half_day\",\n    \"edit_reason\": \"Employee left early due to emergency\",\n    \"notes\": \"Medical emergency - approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance/:attendance_id/edit/",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", ":attendance_id", "edit", ""],
+              "variable": [
+                {
+                  "key": "attendance_id",
+                  "value": "attendance_id_here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance (Dealer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": \"employee_user_id\",\n    \"date\": \"2026-02-03\",\n    \"status\": \"leave\",\n    \"edit_reason\": \"Approved sick leave\",\n    \"notes\": \"Medical leave approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/attendance/mark/",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "mark", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance Report (Dealer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/attendance/report/?month=2026-02",
+              "host": ["{{base_url}}"],
+              "path": ["attendance", "report", ""],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-02"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Service & Warranty",
+      "item": [
+        {
+          "name": "Create Service Request (Customer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.service_request) {",
+                  "        pm.collectionVariables.set('service_id', jsonData.service_request.id);",
+                  "        console.log('✅ Service request created!');",
+                  "        console.log('Request Number:', jsonData.service_request.request_number);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"invoice_id\": \"{{sale_id}}\",\n    \"issue_type\": \"maintenance\",\n    \"issue_description\": \"Regular maintenance - Service 1. Battery charging slowly.\",\n    \"scheduled_date\": \"2026-02-10T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/service/request/create/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "request", "create", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Service Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/service/requests/?status=pending&priority=high",
+              "host": ["{{base_url}}"],
+              "path": ["service", "requests", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "priority",
+                  "value": "high"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Service Request Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/service/requests/{{service_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "requests", "{{service_id}}", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Service (Dealer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"serviceman_id\": \"serviceman_user_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/service/requests/{{service_id}}/assign/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "requests", "{{service_id}}", "assign", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Service Status (Serviceman)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"in_progress\",\n    \"notes\": \"Started service. Checking battery and brakes.\",\n    \"service_time_minutes\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/service/requests/{{service_id}}/status/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "requests", "{{service_id}}", "status", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Service (Serviceman)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"completed\",\n    \"parts_used\": [\n        {\n            \"part_name\": \"Brake Pads\",\n            \"quantity\": 2,\n            \"cost\": 500\n        }\n    ],\n    \"service_time_minutes\": 45,\n    \"notes\": \"Service completed. Battery issue resolved. Brake pads replaced.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/service/requests/{{service_id}}/status/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "requests", "{{service_id}}", "status", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Warranty Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/service/warranty/{{sale_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["service", "warranty", "{{sale_id}}", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Notifications",
+      "item": [
+        {
+          "name": "Create Notification (Admin/Dealer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.notification) {",
+                  "        pm.collectionVariables.set('notification_id', jsonData.notification.id);",
+                  "        console.log('✅ Notification created!');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"New Product Launch\",\n    \"message\": \"We are excited to announce the launch of Super Bike LIGHTNING! Check it out now.\",\n    \"recipient_type\": \"role\",\n    \"recipient_roles\": [\"dealer\", \"customer\"],\n    \"notification_type\": \"success\",\n    \"priority\": \"high\",\n    \"action_url\": \"/products/super-bike-lightning\",\n    \"action_label\": \"View Product\",\n    \"expires_in_days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/notifications/create/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "create", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/my/?unread_only=false",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "my", ""],
+              "query": [
+                {
+                  "key": "unread_only",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/unread-count/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "unread-count", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}", "read", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-all", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Analytics",
+      "item": [
+        {
+          "name": "Admin Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/admin/dashboard/",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "admin", "dashboard", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Dealer Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/dealer/dashboard/",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "dealer", "dashboard", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sales Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/sales/?period=30days&dealer_id={{dealer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "sales", ""],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "30days",
+                  "description": "Options: 7days, 30days, 12months"
+                },
+                {
+                  "key": "dealer_id",
+                  "value": "{{dealer_id}}",
+                  "description": "Optional - Admin only"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Inventory Analytics (Dealer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/analytics/inventory/",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "inventory", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

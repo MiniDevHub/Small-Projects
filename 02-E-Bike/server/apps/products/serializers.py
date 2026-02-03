@@ -1,3 +1,6 @@
+from django.conf import settings
+import os
+import uuid
 from rest_framework import serializers
 from .models import (
     Product,
@@ -40,6 +43,57 @@ class ProductImageSerializer(serializers.Serializer):
     url = serializers.CharField()
     alt = serializers.CharField(max_length=200, required=False)
     is_primary = serializers.BooleanField(default=False)
+
+
+class ProductImageUploadSerializer(serializers.Serializer):
+    """Serializer for uploading product images"""
+
+    image = serializers.ImageField(required=True)
+    alt = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    is_primary = serializers.BooleanField(default=False)
+
+    def validate_image(self, value):
+        """Validate image file"""
+        # Check file size (max 5MB)
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("Image size should not exceed 5MB")
+
+        # Check file extension
+        ext = os.path.splitext(value.name)[1][1:].lower()
+        allowed_extensions = ["jpg", "jpeg", "png", "webp", "gif"]
+
+        if ext not in allowed_extensions:
+            raise serializers.ValidationError(
+                f"Allowed formats: {', '.join(allowed_extensions)}"
+            )
+
+        return value
+
+    def save(self, product_id=None):
+        """Save image and return image data"""
+        image = self.validated_data["image"]
+
+        # Generate unique filename
+        ext = os.path.splitext(image.name)[1]
+        filename = f"{uuid.uuid4()}{ext}"
+
+        # Create media/products directory if not exists
+        media_dir = os.path.join(settings.MEDIA_ROOT, "products")
+        os.makedirs(media_dir, exist_ok=True)
+
+        # Save file
+        filepath = os.path.join(media_dir, filename)
+
+        with open(filepath, "wb+") as destination:
+            for chunk in image.chunks():
+                destination.write(chunk)
+
+        # Return relative URL
+        return {
+            "url": f"/media/products/{filename}",
+            "alt": self.validated_data.get("alt", ""),
+            "is_primary": self.validated_data.get("is_primary", False),
+        }
 
 
 class ProductSerializer(serializers.Serializer):

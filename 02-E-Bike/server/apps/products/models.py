@@ -1,5 +1,6 @@
 from mongoengine import (
     Document,
+    fields,
     StringField,
     FloatField,
     IntField,
@@ -11,6 +12,7 @@ from mongoengine import (
     EmbeddedDocumentField,
 )
 from datetime import datetime
+import os
 
 
 class ProductSpecifications(EmbeddedDocument):
@@ -50,9 +52,10 @@ class Warranty(EmbeddedDocument):
 class ProductImage(EmbeddedDocument):
     """Embedded document for product images"""
 
-    url = StringField(required=True)
-    alt = StringField(max_length=200)
-    is_primary = BooleanField(default=False)
+    url = fields.StringField(required=True)  # Relative path: /media/products/image.jpg
+    alt = fields.StringField(max_length=200)
+    is_primary = fields.BooleanField(default=False)
+    uploaded_at = fields.DateTimeField(default=datetime.now)
 
 
 class Product(Document):
@@ -78,7 +81,7 @@ class Product(Document):
     warranty = EmbeddedDocumentField(Warranty, default=Warranty)
 
     # Media
-    images = ListField(EmbeddedDocumentField(ProductImage))
+    images = fields.ListField(fields.EmbeddedDocumentField(ProductImage), default=list)
     videos = ListField(StringField())
 
     # Inventory

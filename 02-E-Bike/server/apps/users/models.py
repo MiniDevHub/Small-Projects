@@ -16,6 +16,7 @@ class User(Document):
     """MongoEngine User Document for authentication and user management"""
 
     # Role choices
+    ROLE_SUPER_ADMIN = "super_admin"
     ROLE_ADMIN = "admin"
     ROLE_DEALER = "dealer"
     ROLE_EMPLOYEE = "employee"
@@ -23,6 +24,7 @@ class User(Document):
     ROLE_CUSTOMER = "customer"
 
     ROLE_CHOICES = (
+        (ROLE_SUPER_ADMIN, "Super Admin"),
         (ROLE_ADMIN, "Admin"),
         (ROLE_DEALER, "Dealer"),
         (ROLE_EMPLOYEE, "Employee"),
@@ -61,6 +63,7 @@ class User(Document):
 
     # Relationships (for employees/servicemen)
     dealer_id = StringField(max_length=24)  # Reference to dealer user ID
+    admin_id = StringField(max_length=24)  # Reference to admin who created dealer
 
     # Dealer-specific fields
     dealership_name = StringField(max_length=200)
@@ -100,6 +103,7 @@ class User(Document):
             "email",
             "role",
             "dealer_id",
+            "admin_id",
             "-date_joined",
         ],
         "ordering": ["-date_joined"],
@@ -130,6 +134,10 @@ class User(Document):
             )
         except Exception:
             return False
+
+    @property
+    def is_super_admin(self):
+        return self.role == self.ROLE_SUPER_ADMIN
 
     @property
     def is_admin(self):
@@ -189,6 +197,6 @@ class User(Document):
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
         extra_fields.setdefault("is_approved", True)
-        extra_fields.setdefault("role", cls.ROLE_ADMIN)
+        extra_fields.setdefault("role", cls.ROLE_SUPER_ADMIN)
 
         return cls.create_user(email, password, **extra_fields)

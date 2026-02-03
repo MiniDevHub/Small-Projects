@@ -1,6 +1,6 @@
 """
 User authentication and profile management views.
-Handles registration, login, logout, profile updates, and password changes.
+Following the permissions matrix with Super Admin, Admin, Dealer, Employee, Serviceman, Customer roles.
 """
 
 from rest_framework import status
@@ -11,32 +11,70 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from datetime import datetime, date
 
 from .models import User
 from .backends import MongoEngineJWTAuthentication
 from .serializers import (
-    RegisterSerializer,
-    UserSerializer,
+    CustomerRegistrationSerializer,
+    AdminRegistrationSerializer,
+    DealerRegistrationSerializer,
+    EmployeeRegistrationSerializer,
+    ServicemanRegistrationSerializer,
     CustomTokenObtainPairSerializer,
     ChangePasswordSerializer,
     UserUpdateSerializer,
+    EmployeeUpdateSerializer,
+    UserSerializer,
 )
 from .authentication import (
-    validate_user_for_login,
     get_user_context,
     validate_password_strength,
 )
 
 
+# ============================================
+# HELPER FUNCTIONS
+# ============================================
+
+
+def get_user_data(user):
+    """Get user data as dictionary"""
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "full_name": user.get_full_name(),
+        "phone": user.phone,
+        "role": user.role,
+        "dealer_id": user.dealer_id,
+        "admin_id": user.admin_id,
+        "dealership_name": user.dealership_name,
+        "address": user.address,
+        "city": user.city,
+        "state": user.state,
+        "pincode": user.pincode,
+        "joining_date": user.joining_date.isoformat() if user.joining_date else None,
+        "salary": float(user.salary) if user.salary else None,
+        "employment_status": user.employment_status,
+        "is_active": user.is_active,
+        "is_approved": user.is_approved,
+        "date_joined": user.date_joined.isoformat() if user.date_joined else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+
+
+# ============================================
+# AUTHENTICATION ENDPOINTS (Public/All Users)
+# ============================================
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """
-    Custom JWT token obtain view with enhanced login validation.
-    Handles user authentication and returns JWT tokens.
-    """
+    """Custom JWT token obtain view"""
 
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
@@ -48,18 +86,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 @authentication_classes([])
 def register_user(request):
     """
-    Register a new user.
+    Customer self-registration.
 
     POST /api/auth/register/
-    Body: {
-        "email": "user@example.com",
-        "username": "username",
-        "password": "password123",
-        "first_name": "John",
-        "last_name": "Doe"
-    }
     """
-    serializer = RegisterSerializer(data=request.data)
+    serializer = CustomerRegistrationSerializer(data=request.data)
 
     if not serializer.is_valid():
         return Response(
@@ -76,27 +107,32 @@ def register_user(request):
     is_valid, error_msg = validate_password_strength(password)
     if not is_valid:
         return Response(
-            {
-                "success": False,
-                "message": error_msg,
-            },
+            {"success": False, "message": error_msg},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     try:
-        # Create user
-        user = serializer.save()
+        # Create customer
+        validated_data = serializer.validated_data
+        user = User.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            phone=validated_data["phone"],
+            role=User.ROLE_CUSTOMER,
+            is_active=True,
+            is_approved=True,
+        )
 
         # Generate tokens
         refresh = RefreshToken.for_user(user)
-
-        # Get user context
-        user_data = get_user_context(user)
+        user_data = get_user_data(user)
 
         return Response(
             {
                 "success": True,
-                "message": "User registered successfully",
+                "message": "Customer registered successfully",
                 "user": user_data,
                 "tokens": {
                     "refresh": str(refresh),
@@ -108,11 +144,7 @@ def register_user(request):
 
     except Exception as e:
         return Response(
-            {
-                "success": False,
-                "message": "Registration failed",
-                "error": str(e),
-            },
+            {"success": False, "message": "Registration failed", "error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -121,35 +153,38 @@ def register_user(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([MongoEngineJWTAuthentication])
 def logout_user(request):
-    """
-    Logout user by client-side token removal.
+    """Logout user"""
+    return Response(
+        {"success": True, "message": "Logout successful"},
+        status=status.HTTP_200_OK,
+    )
 
-    POST /api/auth/logout/
-    Body: {
-        "refresh": "refresh_token_string"  (optional)
-    }
 
-    Note: JWT tokens are stateless. The client should delete tokens on logout.
-    Tokens will expire naturally after their lifetime.
-    """
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def refresh_token(request):
+    """Refresh access token"""
     try:
+        refresh_token_str = request.data.get("refresh")
+
+        if not refresh_token_str:
+            return Response(
+                {"success": False, "message": "Refresh token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token = RefreshToken(refresh_token_str)
 
         return Response(
-            {
-                "success": True,
-                "message": "Logout successful. Tokens have been cleared.",
-            },
+            {"success": True, "access": str(token.access_token)},
             status=status.HTTP_200_OK,
         )
 
-    except Exception as e:
+    except TokenError as e:
         return Response(
-            {
-                "success": False,
-                "message": "Logout failed",
-                "error": str(e),
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"success": False, "message": "Invalid or expired refresh token"},
+            status=status.HTTP_401_UNAUTHORIZED,
         )
 
 
@@ -157,53 +192,19 @@ def logout_user(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([MongoEngineJWTAuthentication])
 def get_current_user(request):
-    """
-    Get current authenticated user's information.
-
-    GET /api/auth/me/
-    Headers: Authorization: Bearer <access_token>
-    """
+    """Get current authenticated user"""
     try:
-        # request.user is already the mongoengine User object
-        # thanks to our custom MongoEngineJWTAuthentication backend
         user = request.user
-
-        if not user or not hasattr(user, "id"):
-            return Response(
-                {
-                    "success": False,
-                    "message": "User not authenticated",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Get comprehensive user context
-        user_data = get_user_context(user)
+        user_data = get_user_data(user)
 
         return Response(
-            {
-                "success": True,
-                "user": user_data,
-            },
+            {"success": True, "user": user_data},
             status=status.HTTP_200_OK,
-        )
-
-    except User.DoesNotExist:
-        return Response(
-            {
-                "success": False,
-                "message": "User not found",
-            },
-            status=status.HTTP_404_NOT_FOUND,
         )
 
     except Exception as e:
         return Response(
-            {
-                "success": False,
-                "message": "Failed to retrieve user",
-                "error": str(e),
-            },
+            {"success": False, "message": "Failed to retrieve user", "error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -212,29 +213,9 @@ def get_current_user(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([MongoEngineJWTAuthentication])
 def update_user_profile(request):
-    """
-    Update current user's profile.
-
-    PUT/PATCH /api/auth/profile/
-    Body: {
-        "first_name": "John",
-        "last_name": "Doe",
-        "username": "johndoe"
-    }
-    """
+    """Update current user's profile"""
     try:
         user = request.user
-
-        if not user or not hasattr(user, "id"):
-            return Response(
-                {
-                    "success": False,
-                    "message": "User not authenticated",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Use partial=True for PATCH requests
         is_partial = request.method == "PATCH"
         serializer = UserUpdateSerializer(data=request.data, partial=is_partial)
 
@@ -253,9 +234,7 @@ def update_user_profile(request):
             setattr(user, field, value)
 
         user.save()
-
-        # Get updated user context
-        user_data = get_user_context(user)
+        user_data = get_user_data(user)
 
         return Response(
             {
@@ -268,11 +247,7 @@ def update_user_profile(request):
 
     except Exception as e:
         return Response(
-            {
-                "success": False,
-                "message": "Profile update failed",
-                "error": str(e),
-            },
+            {"success": False, "message": "Profile update failed", "error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -281,28 +256,9 @@ def update_user_profile(request):
 @permission_classes([IsAuthenticated])
 @authentication_classes([MongoEngineJWTAuthentication])
 def change_password(request):
-    """
-    Change user's password.
-
-    POST /api/auth/change-password/
-    Body: {
-        "old_password": "old_password",
-        "new_password": "new_password",
-        "confirm_password": "new_password"
-    }
-    """
+    """Change user's password"""
     try:
         user = request.user
-
-        if not user or not hasattr(user, "id"):
-            return Response(
-                {
-                    "success": False,
-                    "message": "User not authenticated",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         serializer = ChangePasswordSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -318,10 +274,7 @@ def change_password(request):
         # Validate old password
         if not user.check_password(serializer.validated_data["old_password"]):
             return Response(
-                {
-                    "success": False,
-                    "message": "Old password is incorrect",
-                },
+                {"success": False, "message": "Old password is incorrect"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -331,10 +284,7 @@ def change_password(request):
 
         if not is_valid:
             return Response(
-                {
-                    "success": False,
-                    "message": error_msg,
-                },
+                {"success": False, "message": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -343,20 +293,180 @@ def change_password(request):
         user.save()
 
         return Response(
+            {"success": True, "message": "Password changed successfully"},
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Password change failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+# ============================================
+# SUPER ADMIN ENDPOINTS (Manage Admins ✅)
+# ============================================
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def register_admin(request):
+    """
+    Register a new admin (Super Admin only).
+
+    POST /api/auth/admins/register/
+    """
+    try:
+        # Check if user is super admin
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Super Admins can register admins"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = AdminRegistrationSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate password strength
+        password = serializer.validated_data["password"]
+        is_valid, error_msg = validate_password_strength(password)
+        if not is_valid:
+            return Response(
+                {"success": False, "message": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Create admin
+        validated_data = serializer.validated_data
+        admin = User.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            phone=validated_data["phone"],
+            role=User.ROLE_ADMIN,
+            is_active=True,
+            is_approved=True,
+            is_staff=True,
+            created_by=str(request.user.id),
+        )
+
+        admin_data = get_user_data(admin)
+
+        return Response(
             {
                 "success": True,
-                "message": "Password changed successfully",
+                "message": "Admin registered successfully",
+                "admin": admin_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Admin registration failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def list_admins(request):
+    """
+    List all admins (Super Admin only).
+
+    GET /api/auth/admins/
+    """
+    try:
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Super Admins can view admins"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        admins = User.objects(role=User.ROLE_ADMIN)
+        admin_list = [get_user_data(admin) for admin in admins]
+
+        return Response(
+            {
+                "success": True,
+                "count": len(admin_list),
+                "admins": admin_list,
             },
             status=status.HTTP_200_OK,
         )
 
     except Exception as e:
         return Response(
+            {"success": False, "message": "Failed to retrieve admins", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def update_admin(request, admin_id):
+    """
+    Update admin (Super Admin only).
+
+    PUT/PATCH /api/auth/admins/<admin_id>/
+    """
+    try:
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Super Admins can update admins"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        admin = User.objects(id=admin_id, role=User.ROLE_ADMIN).first()
+        if not admin:
+            return Response(
+                {"success": False, "message": "Admin not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = UserUpdateSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for field, value in serializer.validated_data.items():
+            setattr(admin, field, value)
+
+        admin.save()
+        admin_data = get_user_data(admin)
+
+        return Response(
             {
-                "success": False,
-                "message": "Password change failed",
-                "error": str(e),
+                "success": True,
+                "message": "Admin updated successfully",
+                "admin": admin_data,
             },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Admin update failed", "error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -364,151 +474,47 @@ def change_password(request):
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 @authentication_classes([MongoEngineJWTAuthentication])
-def delete_current_user(request):
+def delete_admin(request, admin_id):
     """
-    Delete current authenticated user account.
+    Delete admin (Super Admin only).
 
-    DELETE /api/auth/delete-account/
+    DELETE /api/auth/admins/<admin_id>/
     """
     try:
-        user = request.user
-
-        if not user or not hasattr(user, "id"):
+        if request.user.role != User.ROLE_SUPER_ADMIN:
             return Response(
-                {
-                    "success": False,
-                    "message": "User not authenticated",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
+                {"success": False, "message": "Only Super Admins can delete admins"},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
-        user_email = user.email
-        user_name = user.get_full_name()
+        admin = User.objects(id=admin_id, role=User.ROLE_ADMIN).first()
+        if not admin:
+            return Response(
+                {"success": False, "message": "Admin not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # Delete the user
-        user.delete()
+        admin_name = admin.get_full_name()
+        admin.delete()
 
         return Response(
             {
                 "success": True,
-                "message": f"Account deleted successfully for {user_name} ({user_email})",
+                "message": f"Admin {admin_name} deleted successfully",
             },
             status=status.HTTP_200_OK,
         )
 
     except Exception as e:
         return Response(
-            {
-                "success": False,
-                "message": "Account deletion failed",
-                "error": str(e),
-            },
+            {"success": False, "message": "Admin deletion failed", "error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
-@authentication_classes([])
-def refresh_token(request):
-    """
-    Refresh access token using refresh token.
-
-    POST /api/auth/token/refresh/
-    Body: {
-        "refresh": "refresh_token_string"
-    }
-    """
-    try:
-        refresh_token = request.data.get("refresh")
-
-        if not refresh_token:
-            return Response(
-                {
-                    "success": False,
-                    "message": "Refresh token is required",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Generate new access token
-        token = RefreshToken(refresh_token)
-
-        return Response(
-            {
-                "success": True,
-                "access": str(token.access_token),
-            },
-            status=status.HTTP_200_OK,
-        )
-
-    except TokenError as e:
-        return Response(
-            {
-                "success": False,
-                "message": "Invalid or expired refresh token",
-                "error": str(e),
-            },
-            status=status.HTTP_401_UNAUTHORIZED,
-        )
-
-    except Exception as e:
-        return Response(
-            {
-                "success": False,
-                "message": "Token refresh failed",
-                "error": str(e),
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-# Optional: Class-based view alternative for current user
-class CurrentUserView(APIView):
-    """
-    Alternative class-based view for getting current user.
-    GET /api/auth/user/
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        """Get current user"""
-        try:
-            user = request.user
-            user_data = get_user_context(user)
-
-            return Response(
-                {
-                    "success": True,
-                    "user": user_data,
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        except Exception as e:
-            return Response(
-                {
-                    "success": False,
-                    "message": "Failed to retrieve user",
-                    "error": str(e),
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def test_dealer_endpoint(request):
-    """Test endpoint to verify routing"""
-    return Response(
-        {
-            "success": True,
-            "message": "Dealer endpoint is working!",
-            "path": request.path,
-            "method": request.method,
-        }
-    )
+# ============================================
+# ADMIN ENDPOINTS (Manage Dealers ✅)
+# ============================================
 
 
 @api_view(["POST"])
@@ -518,138 +524,57 @@ def register_dealer(request):
     """
     Register a new dealer (Admin only).
 
-    POST /api/auth/register-dealer/
-    Body: {
-        "email": "dealer@example.com",
-        "password": "password123",
-        "confirm_password": "password123",
-        "first_name": "John",
-        "last_name": "Doe",
-        "phone": "9876543210",
-        "dealership_name": "ABC Motors",
-        "address": "123 Main St",
-        "city": "Mumbai",
-        "state": "Maharashtra",
-        "pincode": "400001"
-    }
+    POST /api/auth/dealers/register/
     """
     try:
-        # Check if user is admin
-        if not hasattr(request.user, "role"):
-            print("❌ User has no role attribute")
-            return Response(
-                {
-                    "success": False,
-                    "message": "User has no role attribute",
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         if request.user.role != User.ROLE_ADMIN:
-            print(f"❌ User is not admin. Role: {request.user.role}")
             return Response(
-                {
-                    "success": False,
-                    "message": f"Only admins can register dealers. Your role: {request.user.role}",
-                },
+                {"success": False, "message": "Only Admins can register dealers"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        print("✅ User is admin, proceeding...")
+        serializer = DealerRegistrationSerializer(data=request.data)
 
-        # Validate required fields
-        required_fields = [
-            "email",
-            "password",
-            "confirm_password",
-            "first_name",
-            "last_name",
-            "phone",
-            "dealership_name",
-            "city",
-        ]
-
-        for field in required_fields:
-            if field not in request.data or not request.data.get(field):
-                return Response(
-                    {
-                        "success": False,
-                        "message": f"Field '{field}' is required",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-        # Validate passwords match
-        if request.data["password"] != request.data["confirm_password"]:
+        if not serializer.is_valid():
             return Response(
                 {
                     "success": False,
-                    "message": "Passwords do not match",
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Validate password strength
-        password = request.data["password"]
+        password = serializer.validated_data["password"]
         is_valid, error_msg = validate_password_strength(password)
         if not is_valid:
             return Response(
-                {
-                    "success": False,
-                    "message": error_msg,
-                },
+                {"success": False, "message": error_msg},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if email already exists
-        email = request.data["email"].lower()
-        if User.objects(email=email).first():
-            return Response(
-                {
-                    "success": False,
-                    "message": f"User with email {email} already exists",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Create dealer user
+        # Create dealer
+        validated_data = serializer.validated_data
         dealer = User.create_user(
-            email=email,
-            password=password,
-            first_name=request.data["first_name"],
-            last_name=request.data["last_name"],
-            phone=request.data["phone"],
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            phone=validated_data["phone"],
             role=User.ROLE_DEALER,
-            dealership_name=request.data["dealership_name"],
-            address=request.data.get("address", ""),
-            city=request.data["city"],
-            state=request.data.get("state", ""),
-            pincode=request.data.get("pincode", ""),
+            dealership_name=validated_data["dealership_name"],
+            address=validated_data.get("address", ""),
+            city=validated_data["city"],
+            state=validated_data.get("state", ""),
+            pincode=validated_data.get("pincode", ""),
             is_active=True,
             is_approved=True,
+            admin_id=str(request.user.id),
             created_by=str(request.user.id),
         )
 
-        # Get dealer context
-        dealer_data = {
-            "id": str(dealer.id),
-            "email": dealer.email,
-            "first_name": dealer.first_name,
-            "last_name": dealer.last_name,
-            "full_name": dealer.get_full_name(),
-            "phone": dealer.phone,
-            "role": dealer.role,
-            "dealership_name": dealer.dealership_name,
-            "address": dealer.address,
-            "city": dealer.city,
-            "state": dealer.state,
-            "pincode": dealer.pincode,
-            "is_active": dealer.is_active,
-            "is_approved": dealer.is_approved,
-            "date_joined": (
-                dealer.date_joined.isoformat() if dealer.date_joined else None
-            ),
-        }
+        dealer_data = get_user_data(dealer)
 
         return Response(
             {
@@ -665,6 +590,702 @@ def register_dealer(request):
             {
                 "success": False,
                 "message": "Dealer registration failed",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def list_dealers(request):
+    """
+    List all dealers (Admin only).
+
+    GET /api/auth/dealers/
+    """
+    try:
+        if request.user.role != User.ROLE_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Admins can view dealers"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        dealers = User.objects(role=User.ROLE_DEALER)
+        dealer_list = [get_user_data(dealer) for dealer in dealers]
+
+        return Response(
+            {
+                "success": True,
+                "count": len(dealer_list),
+                "dealers": dealer_list,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to retrieve dealers",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def update_dealer(request, dealer_id):
+    """
+    Update dealer (Admin only).
+
+    PUT/PATCH /api/auth/dealers/<dealer_id>/
+    """
+    try:
+        if request.user.role != User.ROLE_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Admins can update dealers"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        dealer = User.objects(id=dealer_id, role=User.ROLE_DEALER).first()
+        if not dealer:
+            return Response(
+                {"success": False, "message": "Dealer not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = UserUpdateSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for field, value in serializer.validated_data.items():
+            setattr(dealer, field, value)
+
+        dealer.save()
+        dealer_data = get_user_data(dealer)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Dealer updated successfully",
+                "dealer": dealer_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Dealer update failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def delete_dealer(request, dealer_id):
+    """
+    Delete dealer (Admin only).
+
+    DELETE /api/auth/dealers/<dealer_id>/
+    """
+    try:
+        if request.user.role != User.ROLE_ADMIN:
+            return Response(
+                {"success": False, "message": "Only Admins can delete dealers"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        dealer = User.objects(id=dealer_id, role=User.ROLE_DEALER).first()
+        if not dealer:
+            return Response(
+                {"success": False, "message": "Dealer not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        dealer_name = dealer.get_full_name()
+        dealer.delete()
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Dealer {dealer_name} deleted successfully",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Dealer deletion failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+# ============================================
+# ADMIN & DEALER ENDPOINTS (Manage Employees ✅)
+# ============================================
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def register_employee(request):
+    """
+    Register a new employee (Admin or Dealer).
+
+    POST /api/auth/employees/register/
+    """
+    try:
+        user = request.user
+
+        # Check if user is Admin or Dealer
+        if user.role not in [User.ROLE_ADMIN, User.ROLE_DEALER]:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can register employees",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = EmployeeRegistrationSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate password
+        password = serializer.validated_data["password"]
+        is_valid, error_msg = validate_password_strength(password)
+        if not is_valid:
+            return Response(
+                {"success": False, "message": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validated_data = serializer.validated_data
+
+        # Set dealer_id based on who's creating
+        if user.role == User.ROLE_DEALER:
+            dealer_id = str(user.id)
+        elif user.role == User.ROLE_ADMIN:
+            # Admin can specify dealer_id or leave it blank
+            dealer_id = validated_data.get("dealer_id", None)
+        else:
+            dealer_id = None
+
+        # Create employee
+        employee = User.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            phone=validated_data["phone"],
+            role=User.ROLE_EMPLOYEE,
+            dealer_id=dealer_id,
+            joining_date=validated_data.get("joining_date", date.today()),
+            salary=validated_data.get("salary", None),
+            address=validated_data.get("address", ""),
+            is_active=True,
+            is_approved=True,
+            created_by=str(user.id),
+        )
+
+        employee_data = get_user_data(employee)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Employee registered successfully",
+                "employee": employee_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Employee registration failed",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def register_serviceman(request):
+    """
+    Register a new serviceman (Admin or Dealer).
+
+    POST /api/auth/servicemen/register/
+    """
+    try:
+        user = request.user
+
+        if user.role not in [User.ROLE_ADMIN, User.ROLE_DEALER]:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can register servicemen",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = ServicemanRegistrationSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        password = serializer.validated_data["password"]
+        is_valid, error_msg = validate_password_strength(password)
+        if not is_valid:
+            return Response(
+                {"success": False, "message": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validated_data = serializer.validated_data
+
+        # Set dealer_id
+        if user.role == User.ROLE_DEALER:
+            dealer_id = str(user.id)
+        elif user.role == User.ROLE_ADMIN:
+            dealer_id = validated_data.get("dealer_id", None)
+        else:
+            dealer_id = None
+
+        # Create serviceman
+        serviceman = User.create_user(
+            email=validated_data["email"],
+            password=validated_data["password"],
+            first_name=validated_data["first_name"],
+            last_name=validated_data["last_name"],
+            phone=validated_data["phone"],
+            role=User.ROLE_SERVICEMAN,
+            dealer_id=dealer_id,
+            joining_date=validated_data.get("joining_date", date.today()),
+            salary=validated_data.get("salary", None),
+            address=validated_data.get("address", ""),
+            is_active=True,
+            is_approved=True,
+            created_by=str(user.id),
+        )
+
+        serviceman_data = get_user_data(serviceman)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Serviceman registered successfully",
+                "serviceman": serviceman_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Serviceman registration failed",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def list_employees(request):
+    """
+    List employees.
+    - Admin: See all employees
+    - Dealer: See their own employees
+
+    GET /api/auth/employees/
+    """
+    try:
+        user = request.user
+
+        if user.role == User.ROLE_ADMIN:
+            # Admin sees all employees
+            employees = User.objects(role=User.ROLE_EMPLOYEE)
+        elif user.role == User.ROLE_DEALER:
+            # Dealer sees only their employees
+            employees = User.objects(role=User.ROLE_EMPLOYEE, dealer_id=str(user.id))
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can view employees",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        employee_list = [get_user_data(emp) for emp in employees]
+
+        return Response(
+            {
+                "success": True,
+                "count": len(employee_list),
+                "employees": employee_list,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to retrieve employees",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def list_servicemen(request):
+    """
+    List servicemen.
+    - Admin: See all servicemen
+    - Dealer: See their own servicemen
+
+    GET /api/auth/servicemen/
+    """
+    try:
+        user = request.user
+
+        if user.role == User.ROLE_ADMIN:
+            servicemen = User.objects(role=User.ROLE_SERVICEMAN)
+        elif user.role == User.ROLE_DEALER:
+            servicemen = User.objects(role=User.ROLE_SERVICEMAN, dealer_id=str(user.id))
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can view servicemen",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serviceman_list = [get_user_data(sm) for sm in servicemen]
+
+        return Response(
+            {
+                "success": True,
+                "count": len(serviceman_list),
+                "servicemen": serviceman_list,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Failed to retrieve servicemen",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def update_employee(request, employee_id):
+    """
+    Update employee (Admin or their Dealer).
+
+    PUT/PATCH /api/auth/employees/<employee_id>/
+    """
+    try:
+        user = request.user
+
+        employee = User.objects(id=employee_id, role=User.ROLE_EMPLOYEE).first()
+        if not employee:
+            return Response(
+                {"success": False, "message": "Employee not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Permission check
+        if user.role == User.ROLE_ADMIN:
+            # Admin can update any employee
+            pass
+        elif user.role == User.ROLE_DEALER:
+            # Dealer can only update their own employees
+            if employee.dealer_id != str(user.id):
+                return Response(
+                    {
+                        "success": False,
+                        "message": "You can only update your own employees",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can update employees",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = EmployeeUpdateSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for field, value in serializer.validated_data.items():
+            setattr(employee, field, value)
+
+        employee.save()
+        employee_data = get_user_data(employee)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Employee updated successfully",
+                "employee": employee_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Employee update failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["PUT", "PATCH"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def update_serviceman(request, serviceman_id):
+    """
+    Update serviceman (Admin or their Dealer).
+
+    PUT/PATCH /api/auth/servicemen/<serviceman_id>/
+    """
+    try:
+        user = request.user
+
+        serviceman = User.objects(id=serviceman_id, role=User.ROLE_SERVICEMAN).first()
+        if not serviceman:
+            return Response(
+                {"success": False, "message": "Serviceman not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Permission check
+        if user.role == User.ROLE_ADMIN:
+            pass
+        elif user.role == User.ROLE_DEALER:
+            if serviceman.dealer_id != str(user.id):
+                return Response(
+                    {
+                        "success": False,
+                        "message": "You can only update your own servicemen",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can update servicemen",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = EmployeeUpdateSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for field, value in serializer.validated_data.items():
+            setattr(serviceman, field, value)
+
+        serviceman.save()
+        serviceman_data = get_user_data(serviceman)
+
+        return Response(
+            {
+                "success": True,
+                "message": "Serviceman updated successfully",
+                "serviceman": serviceman_data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Serviceman update failed",
+                "error": str(e),
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def delete_employee(request, employee_id):
+    """
+    Delete employee (Admin or their Dealer).
+
+    DELETE /api/auth/employees/<employee_id>/
+    """
+    try:
+        user = request.user
+
+        employee = User.objects(id=employee_id, role=User.ROLE_EMPLOYEE).first()
+        if not employee:
+            return Response(
+                {"success": False, "message": "Employee not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Permission check
+        if user.role == User.ROLE_ADMIN:
+            pass
+        elif user.role == User.ROLE_DEALER:
+            if employee.dealer_id != str(user.id):
+                return Response(
+                    {
+                        "success": False,
+                        "message": "You can only delete your own employees",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can delete employees",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        employee_name = employee.get_full_name()
+        employee.delete()
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Employee {employee_name} deleted successfully",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {"success": False, "message": "Employee deletion failed", "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([MongoEngineJWTAuthentication])
+def delete_serviceman(request, serviceman_id):
+    """
+    Delete serviceman (Admin or their Dealer).
+
+    DELETE /api/auth/servicemen/<serviceman_id>/
+    """
+    try:
+        user = request.user
+
+        serviceman = User.objects(id=serviceman_id, role=User.ROLE_SERVICEMAN).first()
+        if not serviceman:
+            return Response(
+                {"success": False, "message": "Serviceman not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Permission check
+        if user.role == User.ROLE_ADMIN:
+            pass
+        elif user.role == User.ROLE_DEALER:
+            if serviceman.dealer_id != str(user.id):
+                return Response(
+                    {
+                        "success": False,
+                        "message": "You can only delete your own servicemen",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Only Admins or Dealers can delete servicemen",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serviceman_name = serviceman.get_full_name()
+        serviceman.delete()
+
+        return Response(
+            {
+                "success": True,
+                "message": f"Serviceman {serviceman_name} deleted successfully",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        return Response(
+            {
+                "success": False,
+                "message": "Serviceman deletion failed",
                 "error": str(e),
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -201,24 +201,7 @@ yarn-error.log*
 lerna-debug.log*
 pip-log.txt
 pip-delete-this-directory.txt
-
-# ===================================
-# Node (if you have any Node tools)
-# ===================================
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-package-lock.json
-yarn.lock
-
-# ===================================
-# React / Vite (if you have frontend in same repo)
-# ===================================
-dist/
-dist-ssr/
-*.local
+pnpm-debug.log*
 
 # ===================================
 # Docker
@@ -280,9 +263,8 @@ secrets.yml
 credentials.json
 
 # ===================================
-# Project-specific
+# Project-specific (Backend)
 # ===================================
-# Add any project-specific files here
 /media/
 /static/
 /staticfiles/
@@ -335,6 +317,219 @@ profile_stats.txt
 # Compiled translations
 # ===================================
 *.mo
+
+# ===================================
+# 🎨 FRONTEND - Node.js & NPM/Yarn/PNPM
+# ===================================
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Package manager lock files (choose to keep or ignore)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# npm
+npm-debug.log*
+npm-error.log*
+.npm
+
+# Yarn
+yarn-debug.log*
+yarn-error.log*
+.yarn/
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# ===================================
+# 🎨 FRONTEND - Vite
+# ===================================
+# Vite build outputs
+dist/
+dist-ssr/
+*.local
+
+# Vite cache
+.vite/
+.vite-inspect/
+vite.config.*.timestamp-*
+
+# Vite temp files
+*.tmp
+.temp/
+
+# ===================================
+# 🎨 FRONTEND - React
+# ===================================
+# React build
+build/
+.react/
+
+# React DevTools
+.react-devtools
+
+# ===================================
+# 🎨 FRONTEND - TailwindCSS
+# ===================================
+# Tailwind output (if you're generating a separate CSS file)
+/src/styles/tailwind.output.css
+/public/css/tailwind.css
+
+# Tailwind JIT cache
+.tailwindcss-cache/
+
+# ===================================
+# 🎨 FRONTEND - Testing
+# ===================================
+# Vitest
+coverage/
+.vitest/
+
+# Jest
+coverage/
+.jest/
+jest-results.json
+
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+.cypress-cache/
+
+# ===================================
+# 🎨 FRONTEND - Build Tools
+# ===================================
+# Turbopack
+.turbo/
+
+# Parcel
+.parcel-cache/
+.cache/
+
+# Next.js (if you migrate later)
+.next/
+next-env.d.ts
+out/
+
+# Nuxt.js (if you use)
+.nuxt/
+.output/
+
+# Remix (if you use)
+.cache/
+build/
+public/build/
+
+# ===================================
+# 🎨 FRONTEND - TypeScript
+# ===================================
+*.tsbuildinfo
+
+# ===================================
+# 🎨 FRONTEND - ESLint
+# ===================================
+.eslintcache
+
+# ===================================
+# 🎨 FRONTEND - Prettier
+# ===================================
+.prettierignore
+
+# ===================================
+# 🎨 FRONTEND - Storybook
+# ===================================
+storybook-static/
+.storybook-out/
+
+# ===================================
+# 🎨 FRONTEND - IDE/Editor (Frontend specific)
+# ===================================
+# WebStorm
+.idea/
+*.iml
+
+# VSCode extensions
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# ===================================
+# 🎨 FRONTEND - Environment Variables
+# ===================================
+# Vite environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ===================================
+# 🎨 FRONTEND - Misc
+# ===================================
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# Turborepo
+.turbo
+
+# SWC
+.swc/
+
+# Bundle analyzer
+bundle-analyzer-report.html
+stats.json
+
+# Source maps (if you don't want to track them)
+*.map
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+
+# Debug logs
+debug.log
+error.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===================================
+# 🎨 FRONTEND - Assets (optional - uncomment if needed)
+# ===================================
+# Uncomment these if you're generating large asset files during build
+# /public/images/generated/
+# /public/fonts/generated/
+# /src/assets/generated/
 
 # ===================================
 # End of .gitignore
