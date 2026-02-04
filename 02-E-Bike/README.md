@@ -116,16 +116,16 @@
 
 ```plaintext
 Frontend:
-  └── Pages (JSX):        40 files
-  └── Components (JSX):   30 files
-  └── JavaScript files:   25 files
-  └── Total Files:        95 files
+                        └── Pages (JSX):        40 files
+                        └── Components (JSX):   30 files
+                        └── JavaScript files:   25 files
+                        └── Total Files:        95 files
 
 Backend:
-  └── Django Apps:        11 apps
-  └── Python files:       ~80 files
-  └── API Endpoints:      45+ routes
-  └── Models:            15 MongoDB models
+                        └── Django Apps:        11 apps
+                          └── Python files:       ~80 files
+                           └── API Endpoints:      45+ routes
+                                 └── Models:            15 MongoDB models
 ```
 
 </div>
@@ -218,13 +218,13 @@ make monitor          # Live frontend/backend status
 
 See **[TestingGuide.md](TestingGuide.md)** for comprehensive end-to-end testing workflow covering:
 
-✅ **System Setup:** Super Admin creation → Database seeding
-✅ **Role Hierarchy:** Super Admin → Admin → Dealer → Employee → Customer
-✅ **Order Workflows:** Dealer ordering → Admin approval → Inventory updates
-✅ **Sales Process:** Employee sales → Warranty activation → Inventory deduction
-✅ **Service Lifecycle:** Customer booking → Dealer assignment → Serviceman completion
-✅ **Permission Testing:** All 6 roles validated against permissions matrix
-✅ **Cyclic Dependencies:** Testing the interdependent role creation order
+✅ **System Setup:** Super Admin creation → Database seeding<br>
+✅ **Role Hierarchy:** Super Admin → Admin → Dealer → Employee → Customer<br>
+✅ **Order Workflows:** Dealer ordering → Admin approval → Inventory updates<br>
+✅ **Sales Process:** Employee sales → Warranty activation → Inventory deduction<br>
+✅ **Service Lifecycle:** Customer booking → Dealer assignment → Serviceman completion<br>
+✅ **Permission Testing:** All 6 roles validated against permissions matrix<br>
+✅ **Cyclic Dependencies:** Testing the interdependent role creation order<br>
 
 **Estimated Test Time:** 2-3 hours for complete system validation
 
