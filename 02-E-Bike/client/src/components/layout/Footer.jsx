@@ -7,22 +7,14 @@ import {
   Linkedin,
   Mail,
   Phone,
-  MapPin,
 } from "lucide-react";
 import { SOCIAL_LINKS } from "@/utils/constants";
 
 const Footer = () => {
   return (
     <footer className="relative py-16 overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Animated Gradient Overlay */}
-      <div
-        className="absolute inset-0 opacity-30 animate-gradient"
-        style={{
-          background:
-            "linear-gradient(120deg, #0ea5e9, #22c55e, #8b5cf6, #f97316)",
-          backgroundSize: "300% 300%",
-        }}
-      />
+      {/* Animated Gradient Overlay - FIXED */}
+      <div className="absolute inset-0 opacity-30 animate-gradient-flow" />
 
       <div className="container relative z-10 px-4 mx-auto max-w-7xl">
         <div className="grid grid-cols-1 gap-12 mb-12 md:grid-cols-2 lg:grid-cols-4">
@@ -230,24 +222,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-
-      {/* CSS Animation */}
-      <style jsx>{`
-        @keyframes gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-        .animate-gradient {
-          animation: gradient 15s ease-in-out infinite;
-        }
-      `}</style>
     </footer>
   );
 };

@@ -3,8 +3,9 @@ User authentication and profile management views.
 Following the permissions matrix with Super Admin, Admin, Dealer, Employee, Serviceman, Customer roles.
 """
 
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.decorators import (
+    action,
     api_view,
     permission_classes,
     authentication_classes,
@@ -1290,3 +1291,71 @@ def delete_serviceman(request, serviceman_id):
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+# ============================================
+# USER MANAGEMENT ENDPOINTS
+# ============================================
+
+
+class UserManagementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Super Admin to manage users by role
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Only super_admin can access this
+        if user.role != User.ROLE_SUPER_ADMIN:
+            return User.objects.none()
+
+        # Filter by role if provided
+        role = self.request.query_params.get("role")
+        if role:
+            return User.objects.filter(role=role).order_by("-date_joined")
+
+        return User.objects.all().order_by("-date_joined")
+
+    def list(self, request, *args, **kwargs):
+        """Get users by role"""
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"error": "Only super admins can access this endpoint"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        """Create new user (admin only)"""
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"error": "Only super admins can create users"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        """Update user"""
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"error": "Only super admins can update users"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete user"""
+        if request.user.role != User.ROLE_SUPER_ADMIN:
+            return Response(
+                {"error": "Only super admins can delete users"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return super().destroy(request, *args, **kwargs)

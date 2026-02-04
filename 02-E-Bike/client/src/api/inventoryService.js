@@ -14,4 +14,4 @@ const inventoryService = {
   },
 };
 
-export default inventoryService;
+export { inventoryService };

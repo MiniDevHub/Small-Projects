@@ -1,802 +1,1221 @@
-# 🧪 E-Bike Point - Comprehensive Testing Guide
-
-This guide will help you test the complete E-Bike Point ERP system end-to-end.
-
----
+# 🧪 E-Bike Point ERP - Complete Testing Guide
 
 ## 📋 Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Backend Setup & Testing](#backend-setup--testing)
-3. [Frontend Setup & Testing](#frontend-setup--testing)
-4. [User Flow Testing](#user-flow-testing)
-5. [API Testing with Postman](#api-testing-with-postman)
-6. [Common Issues & Solutions](#common-issues--solutions)
+- [Overview](#overview)
+- [Pre-Testing Checklist](#pre-testing-checklist)
+- [Testing Environment Setup](#testing-environment-setup)
+- [Phase 1: System Setup & Super Admin](#phase-1-system-setup--super-admin)
+- [Phase 2: Admin Creation & Configuration](#phase-2-admin-creation--configuration)
+- [Phase 3: Dealer Network Setup](#phase-3-dealer-network-setup)
+- [Phase 4: Dealer Operations](#phase-4-dealer-operations)
+- [Phase 5: Customer Journey](#phase-5-customer-journey)
+- [Phase 6: Service Workflow](#phase-6-service-workflow)
+- [Phase 7: Complete System Test](#phase-7-complete-system-test)
+- [Troubleshooting Guide](#troubleshooting-guide)
+- [Test Scenarios Checklist](#test-scenarios-checklist)
 
 ---
 
-## ✅ Prerequisites
+## 📖 Overview
 
-### Required Software
+This guide provides a **complete end-to-end testing workflow** for the E-Bike Point ERP system, following the hierarchical role structure and permissions matrix.
 
-- **Python 3.10+** installed
-- **Node.js 18+** and npm installed
-- **MongoDB 6.0+** running
-- **Git** installed
-- **Postman** (optional, for API testing)
+### **Role Hierarchy:**
 
-### Check Installations
+```
+Super Admin (System Root)
+    └── Admin (Business Manager)
+        └── Dealer (Dealership Owner)
+            ├── Employee (Sales Staff)
+            └── Serviceman (Technician)
+
+Customer (Independent User)
+```
+
+### **Cyclic Dependencies:**
+
+- **Super Admin** must create **Admin** first
+- **Admin** must create **Dealers** & **Products** before dealers can operate
+- **Dealers** must create **Employees/Servicemen** before they can sell/service
+- **Customers** need **Dealers** to purchase bikes & book services
+
+---
+
+## ✅ Pre-Testing Checklist
+
+### **System Requirements:**
+
+- [ ] Python 3.10+ installed
+- [ ] Node.js 18+ installed
+- [ ] MongoDB 6.0+ installed & running
+- [ ] Redis 5.0+ installed & running (optional for full features)
+- [ ] Git installed
+- [ ] Postman installed (for API testing)
+
+### **Repository Setup:**
+
+- [ ] Project cloned from repository
+- [ ] Both `client/` and `server/` directories exist
+- [ ] `.env` files created in both directories
+
+---
+
+## 🚀 Testing Environment Setup
+
+### **Step 1: Verify System Services**
 
 ```bash
-# Check Python
-python --version  # Should show 3.10 or higher
-
-# Check Node.js
-node --version    # Should show 18 or higher
-npm --version
-
 # Check MongoDB
-mongosh --version # Or mongo --version
-
-# Check Git
-git --version
-```
-
----
-
-## 🔧 Backend Setup & Testing
-
-### 1. Start MongoDB
-
-**macOS/Linux:**
-
-```bash
-# Start MongoDB service
-sudo systemctl start mongod
-
-# Or if using Homebrew (macOS)
-brew services start mongodb-community
-```
-
-**Windows:**
-
-```bash
-# MongoDB should auto-start as a service
-# Or manually start from Services app
-```
-
-**Verify MongoDB is running:**
-
-```bash
 mongosh
 # Should connect successfully
-# Type 'exit' to quit
+# Type: exit
+
+# Check Redis (optional)
+redis-cli ping
+# Should return: PONG
+
+# Check Node.js
+node --version
+# Should be 18+
+
+# Check Python
+python3 --version
+# Should be 3.10+
 ```
 
----
-
-### 2. Backend Installation
+### **Step 2: Backend Setup**
 
 ```bash
-# Navigate to backend directory
 cd server
 
-# Create virtual environment
-python -m venv .venv
+# Check what needs to be done
+make status
 
-# Activate virtual environment
-# macOS/Linux:
+# Install backend (creates .venv, installs deps)
+make install
+
+# Verify installation
+make check-services
+make check-env
+
+# Expected output:
+# ✓ MongoDB running
+# ✓ Redis running (or warning if optional)
+# ✓ .env file exists
+```
+
+### **Step 3: Frontend Setup**
+
+```bash
+cd ../client
+
+# Install frontend
+make install
+
+# Verify
+make check-env
+make check-backend
+
+# Expected output:
+# ✓ node_modules installed
+# ✓ .env file exists
+# ✓ Backend accessible
+```
+
+### **Step 4: Start Both Servers**
+
+**Terminal 1 - Backend:**
+
+```bash
+cd server
+make dev
+
+# Should see:
+# 🚀 Starting Django Server
+# http://127.0.0.1:8000
+# Django version 5.0.1
+```
+
+**Terminal 2 - Frontend:**
+
+```bash
+cd client
+make dev
+
+# Should see:
+# 🚀 Starting Vite Dev Server
+# http://localhost:5173
+```
+
+**Verification:**
+
+- Open: http://localhost:8000/api/ → Should see API root
+- Open: http://localhost:5173 → Should see E-Bike homepage
+
+---
+
+## 📊 Phase 1: System Setup & Super Admin
+
+### **1.1: Create Super Admin (MongoDB)**
+
+**Method 1: Using Django Shell (Recommended)**
+
+```bash
+cd server
 source .venv/bin/activate
-
-# Windows:
-.venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
----
-
-### 3. Configure Environment Variables
-
-Create `.env` file in `server/` directory:
-
-```bash
-# server/.env
-SECRET_KEY=your-super-secret-key-change-this-in-production
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# MongoDB Configuration
-MONGODB_NAME=ebikepoint_erp
-MONGODB_HOST=localhost
-MONGODB_PORT=27017
-MONGODB_USER=
-MONGODB_PASSWORD=
-
-# JWT Configuration
-JWT_SECRET_KEY=your-jwt-secret-key-change-this
-AUTO_LOGOUT_HOURS=9
-FREE_SERVICES_COUNT=4
-WARRANTY_MONTHS=24
-```
-
----
-
-### 4. Create Admin User
-
-```bash
-# Start Django shell
 python manage.py shell
 ```
 
 ```python
-# In Python shell
 from apps.users.models import User
 
-# Create admin user
-admin = User.create_superuser(
-    email="admin@ebike.com",
-    password="Admin@1234",
-    first_name="Admin",
-    last_name="User",
+# Create Super Admin
+super_admin = User.create_superuser(
+    email="superadmin@ebike.com",
+    password="SuperAdmin@123",
+    first_name="Super",
+    last_name="Admin",
     phone="9999999999"
 )
 
-print(f"✅ Admin created: {admin.email}")
+print(f"✅ Super Admin created: {super_admin.email}")
+print(f"   Role: {super_admin.role}")
+print(f"   ID: {super_admin.id}")
+
 exit()
 ```
 
----
-
-### 5. Start Backend Server
+**Method 2: Using Management Command**
 
 ```bash
-# Make sure you're in server/ directory with venv activated
-python manage.py runserver
+cd server
+make createsuperuser
 
-# Should see:
-# Starting development server at http://127.0.0.1:8000/
+# Follow prompts:
+# Email: superadmin@ebike.com
+# Password: SuperAdmin@123
+# First name: Super
+# Last name: Admin
+# Phone: 9999999999
 ```
 
-**Test Backend is Running:**
+### **1.2: Test Super Admin Login**
 
-Open browser and visit:
+**Frontend Test:**
 
-- http://localhost:8000/api/ → Should show Django REST framework page
-- http://localhost:8000/admin/ → Should show Django admin (won't work with MongoDB, but endpoint exists)
+1. Open: http://localhost:5173/login
+2. Click: **"Administrative Access"** link at bottom
+3. Select: **"Super Admin"** card
+4. Enter credentials:
+   - Email: `superadmin@ebike.com`
+   - Password: `SuperAdmin@123`
+5. Click: **"Login"**
 
----
+**Expected Result:**
 
-### 6. Backend API Tests
+- ✅ Redirects to `/super-admin/dashboard`
+- ✅ Shows Super Admin dashboard
+- ✅ Navigation shows: Dashboard, Admins, System, Logs
 
-**Test 1: Health Check**
+**API Test (Postman):**
 
-```bash
-curl http://localhost:8000/api/
-# Should return API root response
+```http
+POST http://localhost:8000/api/auth/login/
+Content-Type: application/json
+
+{
+  "email": "superadmin@ebike.com",
+  "password": "SuperAdmin@123"
+}
 ```
 
-**Test 2: Login Admin**
+**Expected Response:**
 
-```bash
-curl -X POST http://localhost:8000/api/auth/login/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@ebike.com",
-    "password": "Admin@1234"
-  }'
-
-# Should return:
-# {
-#   "access": "eyJ...",
-#   "refresh": "eyJ...",
-#   "user": { ... }
-# }
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "tokens": {
+    "access": "eyJ0eXAiOiJKV1...",
+    "refresh": "eyJ0eXAiOiJKV1..."
+  },
+  "user": {
+    "id": "...",
+    "email": "superadmin@ebike.com",
+    "role": "super_admin",
+    "full_name": "Super Admin"
+  }
+}
 ```
 
-**Test 3: Get Products (Public)**
-
-```bash
-curl http://localhost:8000/api/products/
-
-# Should return products list (may be empty initially)
-```
-
-✅ **Backend is ready if all tests pass!**
-
----
-
-## ⚛️ Frontend Setup & Testing
-
-### 1. Frontend Installation
-
-```bash
-# Open NEW terminal (keep backend running)
-# Navigate to frontend directory
-cd client
-
-# Install dependencies
-npm install
-```
+**Save the access token** for subsequent API requests.
 
 ---
 
-### 2. Configure Environment Variables
+## 👨‍💼 Phase 2: Admin Creation & Configuration
 
-Create `.env` file in `client/` directory:
+### **2.1: Super Admin Creates Admin**
 
-```bash
-# client/.env
-VITE_API_BASE_URL=http://localhost:8000/api
-VITE_APP_NAME=E-Bike Point
-VITE_AUTO_LOGOUT_HOURS=9
-VITE_FREE_SERVICES_COUNT=4
-VITE_WARRANTY_MONTHS=24
+**Frontend Test:**
+
+1. Login as Super Admin
+2. Navigate to: **"Admins"** page
+3. Click: **"Create Admin"** button
+4. Fill form:
+   - First Name: `John`
+   - Last Name: `Admin`
+   - Email: `admin@ebike.com`
+   - Phone: `9876543210`
+   - Password: `Admin@1234`
+   - Confirm Password: `Admin@1234`
+5. Click: **"Create Admin"**
+
+**Expected Result:**
+
+- ✅ Success toast: "Admin created successfully"
+- ✅ New admin appears in admins list
+- ✅ Admin has active status
+
+**API Test (Postman):**
+
+```http
+POST http://localhost:8000/api/auth/admins/register/
+Authorization: Bearer {super_admin_access_token}
+Content-Type: application/json
+
+{
+  "email": "admin@ebike.com",
+  "password": "Admin@1234",
+  "confirm_password": "Admin@1234",
+  "first_name": "John",
+  "last_name": "Admin",
+  "phone": "9876543210"
+}
 ```
 
----
+### **2.2: Test Admin Login**
 
-### 3. Start Frontend Development Server
+**Frontend:**
 
-```bash
-# Make sure you're in client/ directory
-npm run dev
-
-# Should see:
-# VITE vX.X.X  ready in XXX ms
-# ➜  Local:   http://localhost:5173/
-```
-
-**Open Browser:**
-
-- Visit: http://localhost:5173/
-
-✅ **Frontend is running if you see the homepage!**
-
----
-
-## 🧑‍💻 User Flow Testing
-
-### Test Flow 1: Admin Workflow
-
-#### Step 1: Login as Admin
-
-1. Go to http://localhost:5173/login
-2. Enter credentials:
+1. Logout
+2. Go to Login page
+3. Click: **"Administrative Access"**
+4. Select: **"Admin Portal"**
+5. Login with:
    - Email: `admin@ebike.com`
    - Password: `Admin@1234`
-3. Click "Login"
-4. ✅ Should redirect to `/admin/dashboard`
 
-#### Step 2: Create a Product
+**Expected:**
 
-1. Navigate to "Products" from sidebar
-2. Click "+ Add Product"
-3. Fill in product details:
+- ✅ Redirects to `/admin/dashboard`
+- ✅ Shows: Products, Orders, Users, Analytics
 
+### **2.3: Admin Creates Products**
+
+**This is CRITICAL before dealers can operate!**
+
+**Frontend:**
+
+1. Login as Admin
+2. Navigate to: **"Products"** → **"Create Product"**
+3. Create Product #1:
    ```
-   Name: Test Bike Lightning
-   Slug: test-bike-lightning
+   Name: Super Bike LIGHTNING
+   Slug: super-bike-lightning
    Model: LIGHTNING
-   Base Price: 45000
-   Dealer Price: 40000
-   MRP: 50000
+   Category: electric-scooter
+   Base Price: ₹45,000
+   Dealer Price: ₹40,000
+   MRP: ₹50,000
    Total Stock: 100
-
-   Specifications:
-   Range: 50-60 KM
-   Battery: Lithium-ion 48V 24Ah
-   Top Speed: 50 km/h
-   Motor Power: 1000W
+   Is Featured: Yes
    ```
 
-4. Click "Create Product"
-5. ✅ Should see success message and product in list
+**OR Use Seed Command (Faster):**
 
-#### Step 3: Create a Dealer
+```bash
+cd server
+make seed
 
-1. Navigate to "Users" from sidebar
-2. Click "+ Add Dealer"
-3. Fill in dealer details:
-   ```
-   Email: dealer@test.com
-   Password: Dealer@1234
-   First Name: Test
-   Last Name: Dealer
-   Phone: 9876543210
-   Dealership Name: Test Dealership
-   City: Mumbai
-   State: Maharashtra
-   ```
-4. Click "Create Dealer"
-5. ✅ Should see success message
+# This creates all 6 bikes:
+# 1. LIGHTNING
+# 2. MARIUM
+# 3. RABBITOR
+# 4. SSUP
+# 5. JV
+# 6. MAKI
+```
 
-#### Step 4: Logout
+**Verify Products:**
 
-1. Click logout icon in header
-2. ✅ Should redirect to login page
+```bash
+# Frontend
+http://localhost:5173/products
+# Should show 6 products
+
+# API
+GET http://localhost:8000/api/products/
+# Should return 6 products
+```
 
 ---
 
-### Test Flow 2: Dealer Workflow
+## 🏪 Phase 3: Dealer Network Setup
 
-#### Step 1: Login as Dealer
+### **3.1: Admin Creates Dealer**
 
-1. Go to http://localhost:5173/login
-2. Enter credentials:
-   - Email: `dealer@test.com`
+**Frontend:**
+
+1. Login as Admin
+2. Navigate to: **"Users"** → **"Dealers"** tab
+3. Click: **"Add Dealer"**
+4. Fill form:
+
+   ```
+   First Name: Rahul
+   Last Name: Sharma
+   Email: dealer@ebike.com
+   Phone: 9988776655
+   Password: Dealer@1234
+   Confirm Password: Dealer@1234
+
+   Dealership Name: Sharma E-Bike Store
+   Address: Shop 12, MG Road
+   City: Bangalore
+   State: Karnataka
+   Pincode: 560001
+   ```
+
+5. Submit
+
+**API Test:**
+
+```http
+POST http://localhost:8000/api/auth/dealers/register/
+Authorization: Bearer {admin_access_token}
+Content-Type: application/json
+
+{
+  "email": "dealer@ebike.com",
+  "password": "Dealer@1234",
+  "confirm_password": "Dealer@1234",
+  "first_name": "Rahul",
+  "last_name": "Sharma",
+  "phone": "9988776655",
+  "dealership_name": "Sharma E-Bike Store",
+  "address": "Shop 12, MG Road",
+  "city": "Bangalore",
+  "state": "Karnataka",
+  "pincode": "560001"
+}
+```
+
+### **3.2: Test Dealer Login**
+
+**Frontend:**
+
+1. Logout
+2. Login page → Select **"Dealer Portal"**
+3. Credentials:
+   - Email: `dealer@ebike.com`
    - Password: `Dealer@1234`
-3. Click "Login"
-4. ✅ Should redirect to `/dealer/dashboard`
 
-#### Step 2: View Inventory
+**Expected:**
 
-1. Navigate to "Inventory" from sidebar
-2. ✅ Should show empty inventory (no orders approved yet)
+- ✅ Redirects to `/dealer/dashboard`
+- ✅ Shows: Orders, Sales, Inventory, Employees
+- ⚠️ **Inventory initially empty** (until dealer orders from admin)
 
-#### Step 3: Order Products from Admin
+### **3.3: Dealer Orders Products from Admin**
 
-1. Navigate to "Order Products" from sidebar
-2. Click "+ Create Order"
-3. Add items:
-   - Select "Test Bike Lightning"
-   - Quantity: 5
-   - Click "Add Item" if you want more
-4. Add notes: "Urgent order for festival season"
-5. Click "Create Order"
-6. ✅ Should see order in "Pending" status
+**Frontend:**
 
-#### Step 4: Wait for Admin Approval
+1. Login as Dealer
+2. Navigate to: **"Orders"** → **"Place Order"**
+3. Create order:
+
+   ```
+   Products:
+   - LIGHTNING × 5 units
+   - RABBITOR × 3 units
+
+   Notes: Initial stock for store opening
+   ```
+
+4. Submit order
+
+**API Test:**
+
+```http
+POST http://localhost:8000/api/orders/dealer/create/
+Authorization: Bearer {dealer_access_token}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "product_id": "{lightning_product_id}",
+      "quantity": 5
+    },
+    {
+      "product_id": "{rabbitor_product_id}",
+      "quantity": 3
+    }
+  ],
+  "dealer_notes": "Initial stock for store opening",
+  "shipping_address": "Shop 12, MG Road, Bangalore"
+}
+```
+
+**Expected:**
+
+- ✅ Order created with status: **"pending"**
+- ✅ Order appears in dealer's orders list
+- ⏳ Inventory NOT updated yet (needs admin approval)
+
+### **3.4: Admin Approves Dealer Order**
+
+**Frontend:**
 
 1. Logout dealer
 2. Login as Admin
-3. Go to "Order Approvals"
-4. Find the dealer order
-5. Click "Approve" button
-6. Add admin notes (optional)
-7. Click "Approve Order"
-8. ✅ Order status changes to "Approved"
+3. Navigate to: **"Orders"** → **"Pending Orders"**
+4. Find dealer's order
+5. Click: **"Approve"**
+6. Add notes: "Order approved. Will ship tomorrow."
 
-#### Step 5: Dealer Creates Sale
+**API Test:**
 
-1. Logout admin, login as dealer
-2. Navigate to "Create Sale"
-3. Fill in customer details:
-   ```
-   Name: John Doe
-   Phone: 9988776655
-   Email: john@example.com
-   Address: 123 Main St, Mumbai
-   ```
-4. Add sale items:
-   - Select product
-   - Quantity: 1
-5. Select payment method: Cash
-6. Click "Create Sale & Activate Warranty"
-7. ✅ Should see success message and warranty activated
+```http
+POST http://localhost:8000/api/orders/dealer/{order_id}/approve/
+Authorization: Bearer {admin_access_token}
+Content-Type: application/json
+
+{
+  "admin_notes": "Order approved. Will ship tomorrow."
+}
+```
+
+**Expected:**
+
+- ✅ Order status → **"approved"**
+- ✅ Dealer inventory INCREASES by ordered quantity
+- ✅ Admin total stock DECREASES
+
+**Verify Dealer Inventory:**
+
+```bash
+# Login as dealer and check inventory
+GET http://localhost:8000/api/inventory/
+Authorization: Bearer {dealer_access_token}
+
+# Should show:
+# LIGHTNING: 5 units
+# RABBITOR: 3 units
+```
 
 ---
 
-### Test Flow 3: Customer Workflow
+## 👥 Phase 4: Dealer Operations
 
-#### Step 1: Customer Registration
+### **4.1: Dealer Creates Employee**
 
-1. Go to http://localhost:5173/register
-2. Fill in registration form:
+**Frontend:**
+
+1. Login as Dealer
+2. Navigate to: **"Employees"** → **"Add Employee"**
+3. Fill form:
    ```
-   Email: customer@test.com
-   First Name: Test
-   Last Name: Customer
-   Phone: 9898989898
+   First Name: Amit
+   Last Name: Kumar
+   Email: employee@ebike.com
+   Phone: 9887766554
+   Password: Employee@1234
+   Confirm Password: Employee@1234
+   Joining Date: 2026-02-01
+   Salary: ₹25,000
+   ```
+4. Submit
+
+**API Test:**
+
+```http
+POST http://localhost:8000/api/auth/employees/register/
+Authorization: Bearer {dealer_access_token}
+Content-Type: application/json
+
+{
+  "email": "employee@ebike.com",
+  "password": "Employee@1234",
+  "confirm_password": "Employee@1234",
+  "first_name": "Amit",
+  "last_name": "Kumar",
+  "phone": "9887766554",
+  "joining_date": "2026-02-01",
+  "salary": 25000
+}
+```
+
+### **4.2: Dealer Creates Serviceman**
+
+```http
+POST http://localhost:8000/api/auth/servicemen/register/
+Authorization: Bearer {dealer_access_token}
+Content-Type: application/json
+
+{
+  "email": "serviceman@ebike.com",
+  "password": "Service@1234",
+  "confirm_password": "Service@1234",
+  "first_name": "Ravi",
+  "last_name": "Mechanic",
+  "phone": "9776655443",
+  "joining_date": "2026-02-01",
+  "salary": 20000
+}
+```
+
+### **4.3: Test Employee Login**
+
+**Frontend:**
+
+1. Login page → Select **"Staff Login"**
+2. Credentials:
+   - Email: `employee@ebike.com`
+   - Password: `Employee@1234`
+
+**Expected:**
+
+- ✅ Redirects to `/employee/dashboard`
+- ✅ Shows: Sales, Attendance, Profile
+- ✅ Can view dealer's inventory
+- ✅ Can create sales
+
+### **4.4: Employee/Dealer Creates Sale**
+
+**Frontend:**
+
+1. Login as Employee
+2. Navigate to: **"Sales"** → **"New Sale"**
+3. Create sale:
+
+   ```
+   Customer Type: Walk-in
+
+   Customer Details:
+   - Name: Rajesh Kumar
+   - Phone: 9123456789
+   - Email: rajesh@example.com
+   - Address: 123 Street, Bangalore
+
+   Products:
+   - LIGHTNING × 1 (₹45,000)
+
+   Payment Method: UPI
+   Transaction ID: UPI123456789
+   ```
+
+4. Submit
+
+**API Test:**
+
+```http
+POST http://localhost:8000/api/billing/sales/create/
+Authorization: Bearer {employee_access_token}
+Content-Type: application/json
+
+{
+  "customer": {
+    "name": "Rajesh Kumar",
+    "phone": "9123456789",
+    "email": "rajesh@example.com",
+    "address": "123 Street, Bangalore"
+  },
+  "items": [
+    {
+      "product_id": "{lightning_product_id}",
+      "quantity": 1
+    }
+  ],
+  "payment_method": "upi",
+  "payment_details": {
+    "transaction_id": "UPI123456789"
+  }
+}
+```
+
+**Expected:**
+
+- ✅ Sale created with invoice number
+- ✅ **Warranty activated automatically:**
+  - Free services: 4
+  - Warranty period: 24 months
+- ✅ Dealer inventory decreases: LIGHTNING (5 → 4)
+- ✅ Invoice can be downloaded
+
+**Verify Warranty:**
+
+```http
+GET http://localhost:8000/api/service/warranty/{invoice_id}/
+Authorization: Bearer {dealer_access_token}
+```
+
+**Expected Response:**
+
+```json
+{
+  "success": true,
+  "warranty": {
+    "is_active": true,
+    "expiry_date": "2028-02-04",
+    "free_services_total": 4,
+    "free_services_used": 0,
+    "free_services_remaining": 4
+  }
+}
+```
+
+---
+
+## 🛵 Phase 5: Customer Journey
+
+### **5.1: Customer Registration**
+
+**Frontend:**
+
+1. Open: http://localhost:5173/register
+2. Select: **"Customer Account"**
+3. Fill form:
+   ```
+   First Name: Priya
+   Last Name: Sharma
+   Email: customer@ebike.com
+   Phone: 9012345678
    Password: Customer@1234
    Confirm Password: Customer@1234
    ```
-3. Click "Create Account"
-4. ✅ Should auto-login and redirect to customer dashboard
+4. Submit
 
-#### Step 2: Browse Products
+**Expected:**
 
-1. Navigate to "Products" (public page)
-2. Click on a product
-3. ✅ Should see product details page
+- ✅ Auto-login after registration
+- ✅ Redirects to `/customer/dashboard`
 
-#### Step 3: View My Bikes (if purchased)
+### **5.2: Customer Places Order**
 
-1. Go to "My Bikes" from dashboard
-2. ✅ Should see purchased bikes with warranty info
+**Frontend:**
+
+1. Login as Customer
+2. Browse: **"Products"** page
+3. Select: **"RABBITOR"**
+4. Click: **"Place Order"**
+5. Fill form:
+   ```
+   Dealer: Sharma E-Bike Store (Bangalore)
+   Quantity: 1
+   Delivery Address: 456 New Road, Bangalore
+   Home Delivery: Yes
+   Payment Method: Advance
+   Amount Paid: ₹5,000
+   ```
+6. Submit
+
+**API Test:**
+
+```http
+POST http://localhost:8000/api/orders/customer/create/
+Authorization: Bearer {customer_access_token}
+Content-Type: application/json
+
+{
+  "dealer_id": "{dealer_id}",
+  "items": [
+    {
+      "product_id": "{rabbitor_product_id}",
+      "quantity": 1
+    }
+  ],
+  "customer_name": "Priya Sharma",
+  "customer_phone": "9012345678",
+  "customer_email": "customer@ebike.com",
+  "delivery_address": "456 New Road, Bangalore",
+  "is_home_delivery": true,
+  "amount_paid": 5000,
+  "payment_method": "advance",
+  "customer_notes": "Please deliver on weekend"
+}
+```
+
+**Expected:**
+
+- ✅ Order created with status: **"pending"**
+- ✅ Customer can track order
+- ⏳ Dealer needs to confirm
+
+### **5.3: Dealer Confirms Customer Order**
+
+**Frontend:**
+
+1. Login as Dealer
+2. Navigate to: **"Orders"** → **"Customer Orders"**
+3. Find Priya's order
+4. Click: **"Confirm"**
+5. Add notes
+
+**API Test:**
+
+```http
+PATCH http://localhost:8000/api/orders/customer/{order_id}/status/
+Authorization: Bearer {dealer_access_token}
+Content-Type: application/json
+
+{
+  "status": "confirmed",
+  "dealer_notes": "Order confirmed. Will deliver on Saturday."
+}
+```
+
+**Expected:**
+
+- ✅ Order status → **"confirmed"**
+- ✅ Customer receives notification
+- ✅ Order appears in dealer's pending deliveries
 
 ---
 
-### Test Flow 4: Employee Workflow
+## 🔧 Phase 6: Service Workflow
 
-#### Step 1: Create Employee (as Dealer)
+### **6.1: Customer Books Service**
 
-1. Login as dealer
-2. Navigate to "Employees"
-3. Click "+ Add Employee"
-4. Fill details:
+**Scenario:** Rajesh Kumar (who bought LIGHTNING) needs first free service.
+
+**Frontend:**
+
+1. Login as Customer
+2. Navigate to: **"Services"** → **"Book Service"**
+3. Fill form:
    ```
-   Email: employee@test.com
-   Password: Employee@1234
-   First Name: Test
-   Last Name: Employee
-   Phone: 9191919191
-   Role: Employee
+   Invoice/Purchase: Select LIGHTNING purchase
+   Issue Type: Maintenance
+   Description: First free service - Battery check
+   Scheduled Date: 2026-02-10 10:00 AM
    ```
-5. ✅ Employee created
+4. Submit
 
-#### Step 2: Login as Employee
+**API Test:**
 
-1. Logout dealer
-2. Login with employee credentials
-3. ✅ Should see employee dashboard
+```http
+POST http://localhost:8000/api/service/request/create/
+Authorization: Bearer {customer_access_token}
+Content-Type: application/json
 
-#### Step 3: Clock In/Out
+{
+  "invoice_id": "{sale_invoice_id}",
+  "issue_type": "maintenance",
+  "issue_description": "First free service - Battery check",
+  "scheduled_date": "2026-02-10T10:00:00Z"
+}
+```
 
-1. Navigate to "My Attendance"
-2. Click "Clock In"
-3. ✅ Should show clocked in status
-4. Click "Clock Out"
-5. ✅ Should show clocked out with hours worked
+**Expected:**
 
----
+- ✅ Service request created
+- ✅ Status: **"pending"**
+- ✅ **Is free service:** true
+- ✅ **Warranty check:** free_services_remaining: 4 → 3
 
-### Test Flow 5: Serviceman Workflow
+### **6.2: Dealer Assigns Serviceman**
 
-#### Step 1: Create Serviceman (as Dealer)
+**Frontend:**
 
-1. Login as dealer
-2. Create serviceman user (similar to employee)
-3. ✅ Serviceman created
+1. Login as Dealer
+2. Navigate to: **"Services"** → **"Pending Requests"**
+3. Find Rajesh's service request
+4. Click: **"Assign"**
+5. Select: **"Ravi Mechanic"** (serviceman)
 
-#### Step 2: Customer Books Service
+**API Test:**
 
-1. Login as customer
-2. Navigate to "Book Service"
-3. Select bike
-4. Fill service details:
+```http
+POST http://localhost:8000/api/service/requests/{service_id}/assign/
+Authorization: Bearer {dealer_access_token}
+Content-Type: application/json
+
+{
+  "serviceman_id": "{serviceman_user_id}"
+}
+```
+
+**Expected:**
+
+- ✅ Status → **"assigned"**
+- ✅ Serviceman receives notification
+- ✅ Appears in serviceman's dashboard
+
+### **6.3: Serviceman Completes Service**
+
+**Frontend:**
+
+1. Login as Serviceman
+2. Navigate to: **"Services"** → **"My Services"**
+3. Find Rajesh's service
+4. Click: **"Start Service"**
+5. Update status to **"in_progress"**
+6. After work, click: **"Complete Service"**
+7. Fill details:
+
    ```
-   Service Type: Maintenance
-   Issue: Regular service needed
-   Preferred Date: Tomorrow
+   Parts Used:
+   - Brake Pads × 2 (₹500)
+
+   Service Time: 45 minutes
+   Notes: Battery checked. Brake pads replaced.
    ```
-5. Click "Book Service"
-6. ✅ Service request created
 
-#### Step 3: Dealer Assigns Service
+8. Submit
 
-1. Login as dealer
-2. Navigate to "Services"
-3. Find pending service
-4. Click "Assign"
-5. Select serviceman
-6. ✅ Service assigned
+**API Test:**
 
-#### Step 4: Serviceman Updates Status
+```http
+PATCH http://localhost:8000/api/service/requests/{service_id}/status/
+Authorization: Bearer {serviceman_access_token}
+Content-Type: application/json
 
-1. Login as serviceman
-2. Navigate to "My Services"
-3. Find assigned service
-4. Click "Update Status"
-5. Change status to "In Progress"
-6. Add notes: "Started work on battery"
-7. ✅ Status updated
+{
+  "status": "completed",
+  "parts_used": [
+    {
+      "part_name": "Brake Pads",
+      "quantity": 2,
+      "cost": 500
+    }
+  ],
+  "service_time_minutes": 45,
+  "notes": "Battery checked. Brake pads replaced. All OK."
+}
+```
 
----
+**Expected:**
 
-## 📮 API Testing with Postman
+- ✅ Status → **"completed"**
+- ✅ **Free services used:** 1
+- ✅ **Free services remaining:** 3
+- ✅ **Completion date** recorded
+- ✅ Customer notified
 
-### Import Collection
+**Verify Updated Warranty:**
 
-1. Open Postman
-2. Click "Import"
-3. Select the file: `E-Bike Point ERP - Complete API Collection (Updated).postman_collection.json`
-4. ✅ Collection imported with 38+ endpoints
+```http
+GET http://localhost:8000/api/service/warranty/{invoice_id}/
+```
 
-### Test Endpoints
+**Should show:**
 
-**Test Authentication:**
-
-1. Open "1. Authentication" folder
-2. Run "Login" request
-   - Should auto-save tokens to collection variables
-3. Run "Get Current User"
-   - Should return user details
-
-**Test Products:**
-
-1. Run "Admin Login" first
-2. Run "Create Product (Admin)"
-3. Run "List All Products (Public)"
-
-**Test Orders:**
-
-1. Run "Login Dealer"
-2. Run "Create Order (Dealer)"
-3. Login as admin
-4. Run "Approve Order (Admin Only)"
-
----
-
-## 🐛 Common Issues & Solutions
-
-### Issue 1: Backend won't start
-
-**Error:** `ModuleNotFoundError: No module named 'mongoengine'`
-
-**Solution:**
-
-```bash
-# Make sure virtual environment is activated
-source .venv/bin/activate  # macOS/Linux
-# or
-.venv\Scripts\activate     # Windows
-
-# Reinstall dependencies
-pip install -r requirements.txt
+```json
+{
+  "warranty": {
+    "is_active": true,
+    "free_services_total": 4,
+    "free_services_used": 1,
+    "free_services_remaining": 3
+  }
+}
 ```
 
 ---
 
-### Issue 2: MongoDB connection error
+## 🧪 Phase 7: Complete System Test
 
-**Error:** `ServerSelectionTimeoutError: localhost:27017`
+### **7.1: Attendance System Test**
 
-**Solution:**
+**Employee Attendance:**
+
+```http
+# Employee clocks in
+POST http://localhost:8000/api/attendance/clock-in/
+Authorization: Bearer {employee_access_token}
+
+# Expected: Attendance record created
+
+# Check today's status
+GET http://localhost:8000/api/attendance/today/
+Authorization: Bearer {employee_access_token}
+
+# Expected: Shows clock-in time, status: present
+
+# Clock out
+POST http://localhost:8000/api/attendance/clock-out/
+Authorization: Bearer {employee_access_token}
+
+{
+  "notes": "Completed all tasks"
+}
+
+# Expected: Clock-out time recorded, hours calculated
+```
+
+**Dealer Edits Attendance:**
+
+```http
+# Dealer can edit employee attendance
+PATCH http://localhost:8000/api/attendance/{attendance_id}/edit/
+Authorization: Bearer {dealer_access_token}
+
+{
+  "status": "half_day",
+  "edit_reason": "Employee left early due to medical emergency",
+  "notes": "Approved - Medical certificate submitted"
+}
+```
+
+### **7.2: Analytics Test**
+
+**Admin Analytics:**
+
+```http
+GET http://localhost:8000/api/analytics/admin/dashboard/
+Authorization: Bearer {admin_access_token}
+```
+
+**Expected Response:**
+
+```json
+{
+  "success": true,
+  "overview": {
+    "total_dealers": 1,
+    "total_products": 6,
+    "pending_orders": 0,
+    "total_sales_amount": 45000,
+    "low_stock_products": 0
+  },
+  "recent_orders": [...],
+  "sales_trend": [...]
+}
+```
+
+**Dealer Analytics:**
+
+```http
+GET http://localhost:8000/api/analytics/dealer/dashboard/
+Authorization: Bearer {dealer_access_token}
+```
+
+**Expected:**
+
+```json
+{
+  "success": true,
+  "overview": {
+    "total_sales": 1,
+    "total_revenue": 45000,
+    "pending_customer_orders": 1,
+    "low_stock_count": 0,
+    "active_employees": 1,
+    "active_servicemen": 1
+  }
+}
+```
+
+### **7.3: Notifications Test**
+
+**Admin Creates Announcement:**
+
+```http
+POST http://localhost:8000/api/notifications/create/
+Authorization: Bearer {admin_access_token}
+
+{
+  "title": "New Year Sale - 10% Off",
+  "message": "Special discount on all bikes this month!",
+  "recipient_type": "role",
+  "recipient_roles": ["dealer", "customer"],
+  "notification_type": "success",
+  "priority": "high",
+  "expires_in_days": 30
+}
+```
+
+**Users Check Notifications:**
+
+```http
+# Dealer checks notifications
+GET http://localhost:8000/api/notifications/my/
+Authorization: Bearer {dealer_access_token}
+
+# Should see the announcement
+```
+
+---
+
+## 📋 Test Scenarios Checklist
+
+### **Super Admin Tests:**
+
+- [x] Create super admin user
+- [x] Login as super admin
+- [x] Create admin user
+- [x] View all admins
+- [x] Update admin details
+- [x] Delete admin
+- [x] View system logs
+- [x] Access analytics
+
+### **Admin Tests:**
+
+- [x] Login as admin
+- [x] Create products (all 6 bikes)
+- [x] Update product details
+- [x] Manage stock
+- [x] Create dealer
+- [x] View all dealers
+- [x] Approve dealer orders
+- [x] Reject dealer orders
+- [x] Mark orders as shipped
+- [x] View analytics
+
+### **Dealer Tests:**
+
+- [x] Login as dealer
+- [x] Place order to admin
+- [x] View inventory (after order approval)
+- [x] Create employee
+- [x] Create serviceman
+- [x] View/Edit attendance
+- [x] Confirm customer orders
+- [x] Assign services to serviceman
+- [x] View sales reports
+
+### **Employee Tests:**
+
+- [x] Login as employee
+- [x] Clock in/out attendance
+- [x] Create sales (walk-in customer)
+- [x] Create sales (registered customer)
+- [x] View own sales
+- [x] View dealer inventory
+
+### **Serviceman Tests:**
+
+- [x] Login as serviceman
+- [x] Clock in/out attendance
+- [x] View assigned services
+- [x] Update service status
+- [x] Complete services
+- [x] Add service notes & parts
+
+### **Customer Tests:**
+
+- [x] Register account
+- [x] Login
+- [x] Browse products
+- [x] Place order
+- [x] Track order status
+- [x] Book service (free)
+- [x] Book service (paid)
+- [x] View warranty status
+- [x] View purchase history
+
+### **System Integration Tests:**
+
+- [x] Order flow: Dealer → Admin approval → Inventory update
+- [x] Sale flow: Employee sale → Inventory decrease → Warranty activation
+- [x] Service flow: Customer → Dealer → Serviceman → Completion
+- [x] Warranty tracking: Free services decrementation
+- [x] Attendance: Clock in/out → Auto-logout after 9 hours
+- [x] Notifications: Admin broadcast → Role-based delivery
+
+---
+
+## 🚨 Troubleshooting Guide
+
+### **Issue: "MongoDB not connected"**
 
 ```bash
-# Check if MongoDB is running
+# Check MongoDB status
+brew services list | grep mongodb
+# If not running:
+brew services start mongodb-community@6.0
+
+# Verify connection
 mongosh
-
-# If not running, start it:
-sudo systemctl start mongod  # Linux
-brew services start mongodb-community  # macOS
-# Windows: Start from Services app
 ```
 
----
+### **Issue: "400 Bad Request on admin creation"**
 
-### Issue 3: CORS errors in browser
+**Check:**
 
-**Error:** `Access to XMLHttpRequest has been blocked by CORS policy`
-
-**Solution:**
-
-Check `server/config/settings.py`:
-
-```python
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-]
-```
-
-Restart backend server after changes.
-
----
-
-### Issue 4: Frontend can't connect to backend
-
-**Error:** `Network Error` or `ERR_CONNECTION_REFUSED`
+1. Missing `confirm_password` field
+2. Password doesn't meet requirements (8+ chars, uppercase, lowercase, number)
+3. Email already exists
 
 **Solution:**
-
-1. Check backend is running: http://localhost:8000/api/
-2. Check `.env` file in client:
-   ```
-   VITE_API_BASE_URL=http://localhost:8000/api
-   ```
-3. Restart frontend: `npm run dev`
-
----
-
-### Issue 5: Login returns 401 Unauthorized
-
-**Error:** `Invalid credentials`
-
-**Solution:**
-
-1. Verify user exists in database:
-
-   ```bash
-   python manage.py shell
-   ```
-
-   ```python
-   from apps.users.models import User
-   User.objects.all()
-   ```
-
-2. Reset admin password:
-   ```python
-   admin = User.objects.get(email="admin@ebike.com")
-   admin.set_password("Admin@1234")
-   admin.save()
-   ```
-
----
-
-### Issue 6: JWT token expired
-
-**Error:** `Token is invalid or expired`
-
-**Solution:**
-
-Frontend should auto-refresh tokens. If not:
-
-1. Clear localStorage in browser
-2. Login again
-3. Tokens refresh automatically
-
----
-
-### Issue 7: Product images not showing
-
-**Issue:** Placeholder images display
-
-**Solution:**
-
-Images are currently placeholders. To add real images:
-
-1. Add image URLs to product creation
-2. Or upload images to a CDN
-3. Update product image URLs
-
----
-
-## 🧪 Automated Testing Checklist
-
-### Backend Tests
-
-- [ ] Admin can login
-- [ ] Admin can create products
-- [ ] Admin can approve orders
-- [ ] Dealer can register (via admin)
-- [ ] Dealer can order products
-- [ ] Dealer can create sales
-- [ ] Employee can clock in/out
-- [ ] Customer can register
-- [ ] Service requests work
-- [ ] Warranty activation works
-
-### Frontend Tests
-
-- [ ] Homepage loads
-- [ ] Login/Register works
-- [ ] Product listing shows
-- [ ] Product details display
-- [ ] Admin dashboard accessible
-- [ ] Dealer dashboard accessible
-- [ ] Customer dashboard accessible
-- [ ] Navigation works
-- [ ] Logout works
-- [ ] Role-based routing works
-
-### Integration Tests
-
-- [ ] Create product → Order → Approve → Sell flow
-- [ ] Customer purchase → Warranty activation
-- [ ] Service booking → Assignment → Completion
-- [ ] Employee attendance tracking
-- [ ] Inventory updates after orders
-
----
-
-## 📊 Test Data Setup Script
-
-Create test data quickly:
-
-**server/setup_test_data.py:**
-
-```python
-from apps.users.models import User
-from apps.products.models import Product
-
-# Create admin
-admin = User.create_superuser(
-    email="admin@ebike.com",
-    password="Admin@1234",
-    first_name="Admin",
-    last_name="User",
-    phone="9999999999"
-)
-
-# Create dealer
-dealer = User.create_user(
-    email="dealer@ebike.com",
-    password="Dealer@1234",
-    first_name="Test",
-    last_name="Dealer",
-    phone="9876543210",
-    role="dealer",
-    dealership_name="Test Dealership",
-    city="Mumbai",
-    state="Maharashtra"
-)
-
-# Create product
-product = Product(
-    name="Test Bike Lightning",
-    slug="test-bike-lightning",
-    model="LIGHTNING",
-    base_price=45000,
-    dealer_price=40000,
-    mrp=50000,
-    total_stock=100,
-    is_available=True,
-    created_by=str(admin.id)
-)
-product.save()
-
-print("✅ Test data created successfully!")
-```
-
-**Run:**
 
 ```bash
-python manage.py shell < setup_test_data.py
+# Check existing admins
+mongosh ebikepoint_erp
+db.users.find({role: "admin"})
+```
+
+### **Issue: "Inventory not updating after order approval"**
+
+**Check:**
+
+1. Order status is "approved"
+2. Dealer ID matches
+3. Product IDs are correct
+
+**Verify:**
+
+```http
+GET http://localhost:8000/api/inventory/
+Authorization: Bearer {dealer_access_token}
+```
+
+### **Issue: "Service not marked as free"**
+
+**Check:**
+
+1. Invoice has warranty activated
+2. Free services remaining > 0
+3. Service is within warranty period (24 months)
+
+**Verify:**
+
+```http
+GET http://localhost:8000/api/service/warranty/{invoice_id}/
 ```
 
 ---
 
-## 🎯 Final Testing Checklist
+## 🎯 Success Criteria
 
-### Before Deployment
+**✅ System is working correctly if:**
 
-- [ ] All API endpoints working
-- [ ] All user roles tested
-- [ ] All workflows tested
-- [ ] No console errors
-- [ ] No API errors
-- [ ] Responsive design works
-- [ ] Forms validate correctly
-- [ ] Error messages display
-- [ ] Success messages display
-- [ ] Loading states work
-- [ ] Empty states display
+1. **Role Hierarchy:**
+   - Super Admin can create Admins ✓
+   - Admin can create Dealers & Products ✓
+   - Dealer can create Employees & Servicemen ✓
+   - Customer can self-register ✓
 
-### Performance Tests
+2. **Order Workflow:**
+   - Dealer orders → Pending ✓
+   - Admin approves → Inventory updates ✓
+   - Customer orders → Dealer confirms ✓
 
-- [ ] Page load < 3 seconds
-- [ ] API responses < 1 second
-- [ ] Image loading optimized
-- [ ] No memory leaks
-- [ ] Smooth animations
+3. **Sales & Warranty:**
+   - Sale creates invoice ✓
+   - Warranty auto-activates (4 free services, 24 months) ✓
+   - Inventory decreases ✓
 
-### Security Tests
+4. **Service Workflow:**
+   - Customer books → Pending ✓
+   - Dealer assigns → Serviceman ✓
+   - Serviceman completes → Free service count decreases ✓
 
-- [ ] Protected routes work
-- [ ] Unauthorized access blocked
-- [ ] XSS protection works
-- [ ] CSRF protection enabled
-- [ ] Passwords hashed
-- [ ] JWT tokens secure
+5. **Permissions:**
+   - Each role can ONLY access their permitted features ✓
+   - Unauthorized access returns 403 Forbidden ✓
 
 ---
-
-## 🚀 Next Steps After Testing
-
-1. **Fix any bugs found**
-2. **Optimize performance**
-3. **Add production environment configs**
-4. **Setup CI/CD pipeline**
-5. **Deploy to production**
-
----
-
-## 📞 Support
-
-If you encounter issues:
-
-1. Check this guide first
-2. Review error logs in:
-   - Backend: Terminal running Django
-   - Frontend: Browser console
-3. Check API responses in Network tab
-4. Review Postman collection for working examples
-
----
-
-**Happy Testing! 🎉**

@@ -17,6 +17,7 @@ const RoleRoute = ({ children, allowedRoles = [] }) => {
   if (!allowedRoles.includes(user?.role)) {
     // Redirect to appropriate dashboard based on role
     const roleRoutes = {
+      super_admin: "/super-admin/dashboard",
       admin: "/admin/dashboard",
       dealer: "/dealer/dashboard",
       employee: "/employee/dashboard",

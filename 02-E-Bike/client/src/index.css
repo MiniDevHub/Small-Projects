@@ -138,3 +138,22 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #2a5199, #00c6c1);
 }
+
+/* Gradient Animation for Footer */
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-flow {
+  background: linear-gradient(120deg, #0ea5e9, #22c55e, #8b5cf6, #f97316);
+  background-size: 300% 300%;
+  animation: gradient-flow 15s ease-in-out infinite;
+}

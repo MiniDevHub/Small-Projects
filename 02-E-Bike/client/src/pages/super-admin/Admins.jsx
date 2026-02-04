@@ -19,7 +19,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
 
 const SuperAdminAdmins = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -39,8 +38,8 @@ const SuperAdminAdmins = () => {
       await createAdmin.mutateAsync(formData);
       setIsFormOpen(false);
       reset();
-    } catch (error) {
-      // Error handled by mutation
+    } catch {
+      // Error handled by mutation hook
     }
   };
 
@@ -103,7 +102,7 @@ const SuperAdminAdmins = () => {
           size="sm"
           variant="ghost"
           onClick={() => handleDelete(row.original.id)}
-          className="text-red-600 hover:text-red-700"
+          className="text-red-600 hover:text-red-700 hover:bg-red-50"
         >
           <Trash2 className="w-4 h-4" />
         </Button>
@@ -115,6 +114,7 @@ const SuperAdminAdmins = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -128,73 +128,153 @@ const SuperAdminAdmins = () => {
         </div>
         <Button
           onClick={() => setIsFormOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600"
+          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Admin
         </Button>
       </motion.div>
 
+      {/* Admin Count & Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg shadow-sm"
       >
-        <DataTable data={data?.results || []} columns={columns} />
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-purple-600" />
+            <p className="text-sm text-gray-600">
+              Total Admins:{" "}
+              <span className="font-semibold text-gray-900">
+                {data?.count || 0}
+              </span>
+            </p>
+          </div>
+        </div>
+        <DataTable data={data?.admins || []} columns={columns} />
       </motion.div>
 
-      {/* Create Admin Form */}
+      {/* Create Admin Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
+              <Shield className="w-5 h-5 text-purple-600" />
               Create New Admin
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Name Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>First Name *</Label>
-                <Input {...register("first_name", { required: true })} />
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input
+                  id="first_name"
+                  placeholder="John"
+                  {...register("first_name", { required: true })}
+                />
                 {errors.first_name && (
-                  <p className="text-sm text-red-600">Required</p>
+                  <p className="mt-1 text-sm text-red-600">Required</p>
                 )}
               </div>
               <div>
-                <Label>Last Name *</Label>
-                <Input {...register("last_name", { required: true })} />
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input
+                  id="last_name"
+                  placeholder="Doe"
+                  {...register("last_name", { required: true })}
+                />
                 {errors.last_name && (
-                  <p className="text-sm text-red-600">Required</p>
+                  <p className="mt-1 text-sm text-red-600">Required</p>
                 )}
               </div>
             </div>
+
+            {/* Email */}
             <div>
-              <Label>Email *</Label>
-              <Input type="email" {...register("email", { required: true })} />
-              {errors.email && <p className="text-sm text-red-600">Required</p>}
-            </div>
-            <div>
-              <Label>Phone *</Label>
-              <Input {...register("phone", { required: true })} />
-              {errors.phone && <p className="text-sm text-red-600">Required</p>}
-            </div>
-            <div>
-              <Label>Password *</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                {...register("email", { required: true })}
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">Required</p>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                placeholder="+91 9876543210"
+                {...register("phone", { required: true })}
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">Required</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
                 type="password"
+                placeholder="Min 8 characters"
                 {...register("password", { required: true, minLength: 8 })}
               />
               {errors.password && (
-                <p className="text-sm text-red-600">Min 8 characters</p>
+                <p className="mt-1 text-sm text-red-600">
+                  Minimum 8 characters required
+                </p>
               )}
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={createAdmin.isPending}
-            >
-              {createAdmin.isPending ? "Creating..." : "Create Admin"}
-            </Button>
+
+            {/* Confirm Password */}
+            <div>
+              <Label htmlFor="confirm_password">Confirm Password *</Label>
+              <Input
+                id="confirm_password"
+                type="password"
+                placeholder="Re-enter password"
+                {...register("confirm_password", {
+                  required: true,
+                  validate: (value, formValues) =>
+                    value === formValues.password || "Passwords must match",
+                })}
+              />
+              {errors.confirm_password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirm_password.message || "Required"}
+                </p>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="submit"
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                disabled={createAdmin.isPending}
+              >
+                {createAdmin.isPending ? "Creating..." : "Create Admin"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsFormOpen(false);
+                  reset();
+                }}
+                disabled={createAdmin.isPending}
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

@@ -17,7 +17,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--role",
             type=str,
-            help="Delete only users with specific role (admin, dealer, employee, serviceman, customer)",
+            help="Delete only users with specific role (super_admin, admin, dealer, employee, serviceman, customer)",
         )
         parser.add_argument(
             "--destroy-humanity",
@@ -40,8 +40,9 @@ class Command(BaseCommand):
 
         self.stdout.write("=" * 60 + "\n")
 
-        # All possible roles
+        # All possible roles (✅ UPDATED with super_admin)
         all_roles = {
+            User.ROLE_SUPER_ADMIN: {"emoji": "⚡", "name": "Super Admins"},  # ✅ NEW
             User.ROLE_ADMIN: {"emoji": "👑", "name": "Admins"},
             User.ROLE_DEALER: {"emoji": "🏪", "name": "Dealers"},
             User.ROLE_EMPLOYEE: {"emoji": "💼", "name": "Employees"},
@@ -72,7 +73,7 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f"   {emoji} {name:15} : {count:3d} user(s)")
                 )
             else:
-                # Use plain text for zero counts (no MIGRATE style)
+                # Use plain text for zero counts
                 self.stdout.write(f"   {emoji} {name:15} : {count:3d} (none found)")
 
         self.stdout.write("─" * 40)
@@ -110,7 +111,9 @@ class Command(BaseCommand):
             users_by_role[user.role].append(user)
 
         user_number = 1
+        # ✅ UPDATED: Added ROLE_SUPER_ADMIN to iteration
         for role_key in [
+            User.ROLE_SUPER_ADMIN,  # ✅ NEW
             User.ROLE_ADMIN,
             User.ROLE_DEALER,
             User.ROLE_EMPLOYEE,

@@ -41,4 +41,4 @@ const serviceService = {
   },
 };
 
-export default serviceService;
+export { serviceService };

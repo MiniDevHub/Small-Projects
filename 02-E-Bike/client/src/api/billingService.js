@@ -26,4 +26,4 @@ const billingService = {
   },
 };
 
-export default billingService;
+export { billingService };

@@ -1,4 +1,4 @@
-.PHONY: help install clean dev build preview test lint format audit deps check-node check-env status stop
+.PHONY: help install clean dev build preview test lint format audit deps check-node check-env status stop open
 
 # Colors
 RED := \033[0;31m
@@ -7,428 +7,681 @@ YELLOW := \033[1;33m
 CYAN := \033[0;36m
 PURPLE := \033[0;35m
 BLUE := \033[0;34m
+WHITE := \033[1;37m
 NC := \033[0m
+
+# Emojis for better visual feedback
+CHECK := ✓
+CROSS := ✗
+ARROW := →
+STAR := ★
 
 # Variables
 NODE_MIN_VERSION := 18.0.0
 NPM_MIN_VERSION := 9.0.0
 FRONTEND_PORT := 5173
-BACKEND_URL := http://localhost:8000
+FRONTEND_URL := http://localhost:$(FRONTEND_PORT)
+BACKEND_PORT := 8000
+BACKEND_URL := http://localhost:$(BACKEND_PORT)
+API_URL := $(BACKEND_URL)/api
 NODE_MODULES := node_modules
 BUILD_DIR := dist
+PREVIEW_PORT := 4173
+
+# OS Detection for cross-platform commands
+UNAME := $(shell uname)
+ifeq ($(UNAME), Darwin)
+    OPEN_CMD := open
+else ifeq ($(UNAME), Linux)
+    OPEN_CMD := xdg-open
+else
+    OPEN_CMD := start
+endif
+
+# Default target
+.DEFAULT_GOAL := help
 
 help:
 	@echo ""
 	@echo "$(CYAN)╔═══════════════════════════════════════════════════════╗$(NC)"
-	@echo "$(CYAN)║       ⚛️  E-Bike Point ERP - Frontend Setup            ║$(NC)"
+	@echo "$(CYAN)║       ⚛️  E-Bike Point ERP - Frontend Commands         ║$(NC)"
 	@echo "$(CYAN)╚═══════════════════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(BLUE)Usage: make <targetName>$(NC)"
+	@echo "$(BLUE)Usage: make <command>$(NC)"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(PURPLE)🚀 Quick Start$(NC)"
+	@echo "$(PURPLE)🚀 Quick Start Commands$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)install$(NC)              => 📦 Install all dependencies"
-	@echo "  $(CYAN)dev$(NC)                  => 🔧 Start development server"
-	@echo "  $(CYAN)build$(NC)                => 🏗️  Build for production"
-	@echo "  $(CYAN)preview$(NC)              => 👀 Preview production build"
+	@echo "  $(CYAN)setup$(NC)                $(ARROW) 🎯 Complete setup (install + check + open)"
+	@echo "  $(CYAN)dev$(NC)                  $(ARROW) 🔧 Start dev server"
+	@echo "  $(CYAN)dev-open$(NC)             $(ARROW) 🌐 Start dev server + open browser"
+	@echo "  $(CYAN)open$(NC)                 $(ARROW) 🌐 Open app in browser"
+	@echo "  $(CYAN)stop$(NC)                 $(ARROW) 🛑 Stop all servers"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(PURPLE)💻 Development$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)dev$(NC)                  => 🌐 Start Vite dev server (:5173)"
-	@echo "  $(CYAN)dev-host$(NC)             => 🌐 Dev server (network accessible)"
-	@echo "  $(CYAN)dev-open$(NC)             => 🌐 Dev server (auto-open browser)"
-	@echo "  $(CYAN)stop$(NC)                 => 🛑 Stop development server"
-	@echo "  $(CYAN)restart$(NC)              => 🔄 Restart dev server"
+	@echo "  $(CYAN)dev$(NC)                  $(ARROW) 🌐 Start Vite dev server"
+	@echo "  $(CYAN)dev-open$(NC)             $(ARROW) 🌐 Dev server + auto-open browser"
+	@echo "  $(CYAN)dev-host$(NC)             $(ARROW) 📡 Dev server (network accessible)"
+	@echo "  $(CYAN)dev-host-open$(NC)        $(ARROW) 📡 Network dev + open browser"
+	@echo "  $(CYAN)dev-debug$(NC)            $(ARROW) 🐛 Dev server with debug mode"
+	@echo "  $(CYAN)restart$(NC)              $(ARROW) 🔄 Restart dev server"
+	@echo "  $(CYAN)stop$(NC)                 $(ARROW) 🛑 Stop dev server"
+	@echo ""
+	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(PURPLE)🌐 Browser & Navigation$(NC)"
+	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "  $(CYAN)open$(NC)                 $(ARROW) 🌐 Open homepage"
+	@echo "  $(CYAN)open-login$(NC)           $(ARROW) 🔐 Open login page"
+	@echo "  $(CYAN)open-register$(NC)        $(ARROW) 📝 Open registration"
+	@echo "  $(CYAN)open-admin$(NC)           $(ARROW) 👨‍💼 Open admin dashboard"
+	@echo "  $(CYAN)open-api$(NC)             $(ARROW) 📡 Open backend API"
+	@echo "  $(CYAN)open-build$(NC)           $(ARROW) 📦 Open production preview"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(PURPLE)🏗️  Build & Deploy$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)build$(NC)                => 🏗️  Build for production (dist/)"
-	@echo "  $(CYAN)build-check$(NC)          => ✅ Build and check for errors"
-	@echo "  $(CYAN)preview$(NC)              => 👀 Preview production build locally"
-	@echo "  $(CYAN)build-analyze$(NC)        => 📊 Analyze bundle size"
+	@echo "  $(CYAN)build$(NC)                $(ARROW) 🏗️  Build for production"
+	@echo "  $(CYAN)build-check$(NC)          $(ARROW) ✅ Build + verify output"
+	@echo "  $(CYAN)preview$(NC)              $(ARROW) 👀 Preview production build"
+	@echo "  $(CYAN)preview-open$(NC)         $(ARROW) 👀 Preview + open browser"
+	@echo "  $(CYAN)build-analyze$(NC)        $(ARROW) 📊 Analyze bundle size"
+	@echo "  $(CYAN)serve$(NC)                $(ARROW) 🚀 Serve production build"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(PURPLE)🧪 Testing & Quality$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)test$(NC)                 => 🧪 Run tests (if configured)"
-	@echo "  $(CYAN)lint$(NC)                 => 🔍 Run ESLint"
-	@echo "  $(CYAN)lint-fix$(NC)             => 🔧 Fix ESLint errors"
-	@echo "  $(CYAN)format$(NC)               => ✨ Format code with Prettier"
-	@echo "  $(CYAN)format-check$(NC)         => 🔍 Check code formatting"
-	@echo "  $(CYAN)typecheck$(NC)            => 🔍 Run TypeScript type check"
-	@echo "  $(CYAN)audit$(NC)                => 🔒 Security audit (npm audit)"
-	@echo "  $(CYAN)audit-fix$(NC)            => 🔧 Fix security issues"
+	@echo "  $(CYAN)test$(NC)                 $(ARROW) 🧪 Run tests"
+	@echo "  $(CYAN)test-watch$(NC)           $(ARROW) 👁️  Run tests in watch mode"
+	@echo "  $(CYAN)test-coverage$(NC)        $(ARROW) 📊 Generate coverage report"
+	@echo "  $(CYAN)lint$(NC)                 $(ARROW) 🔍 Run ESLint"
+	@echo "  $(CYAN)lint-fix$(NC)             $(ARROW) 🔧 Fix ESLint errors"
+	@echo "  $(CYAN)format$(NC)               $(ARROW) ✨ Format code with Prettier"
+	@echo "  $(CYAN)format-check$(NC)         $(ARROW) 🔍 Check code formatting"
+	@echo "  $(CYAN)quality$(NC)              $(ARROW) 🏆 Run all quality checks"
+	@echo ""
+	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(PURPLE)🏥 Health & Monitoring$(NC)"
+	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "  $(CYAN)health$(NC)               $(ARROW) 🏥 Complete health check"
+	@echo "  $(CYAN)check-all$(NC)            $(ARROW) 🔍 Run all checks"
+	@echo "  $(CYAN)check-ports$(NC)          $(ARROW) 🔌 Check if ports are free"
+	@echo "  $(CYAN)monitor$(NC)              $(ARROW) 📊 Monitor services (live)"
+	@echo "  $(CYAN)logs$(NC)                 $(ARROW) 📋 Show recent logs"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
 	@echo "$(PURPLE)📦 Dependencies$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)deps$(NC)                 => 📋 List installed dependencies"
-	@echo "  $(CYAN)deps-outdated$(NC)        => 📋 Check for outdated packages"
-	@echo "  $(CYAN)deps-update$(NC)          => ⬆️  Update all dependencies"
-	@echo "  $(CYAN)deps-update-minor$(NC)    => ⬆️  Update minor versions only"
-	@echo "  $(CYAN)deps-clean$(NC)           => 🧹 Remove node_modules & reinstall"
+	@echo "  $(CYAN)install$(NC)              $(ARROW) 📦 Install dependencies"
+	@echo "  $(CYAN)install-clean$(NC)        $(ARROW) 🧹 Clean install"
+	@echo "  $(CYAN)deps$(NC)                 $(ARROW) 📋 List dependencies"
+	@echo "  $(CYAN)deps-check$(NC)           $(ARROW) 🔍 Check for issues"
+	@echo "  $(CYAN)deps-update$(NC)          $(ARROW) ⬆️  Update all packages"
+	@echo "  $(CYAN)audit$(NC)                $(ARROW) 🔒 Security audit"
 	@echo ""
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(PURPLE)🔧 Setup & Maintenance$(NC)"
+	@echo "$(PURPLE)🔧 Utilities$(NC)"
 	@echo "$(PURPLE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)check-node$(NC)           => 🔍 Check Node.js & npm versions"
-	@echo "  $(CYAN)check-env$(NC)            => 🔍 Verify .env file"
-	@echo "  $(CYAN)check-backend$(NC)        => 🔍 Check backend connectivity"
-	@echo "  $(CYAN)status$(NC)               => 📊 Show complete system status"
-	@echo "  $(CYAN)clean$(NC)                => 🧹 Clean build files & cache"
-	@echo "  $(CYAN)clean-all$(NC)            => 🧹 Deep clean (includes node_modules)"
+	@echo "  $(CYAN)clean$(NC)                $(ARROW) 🧹 Clean build artifacts"
+	@echo "  $(CYAN)clean-all$(NC)            $(ARROW) 🧹 Deep clean (includes node_modules)"
+	@echo "  $(CYAN)reset$(NC)                $(ARROW) 🔄 Complete reset"
+	@echo "  $(CYAN)backup$(NC)               $(ARROW) 💾 Backup current state"
 	@echo ""
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(YELLOW)💡 Quick Start Guide:$(NC)"
+	@echo "$(YELLOW)$(STAR) Quick Start:$(NC) make setup"
+	@echo "$(YELLOW)$(STAR) Development:$(NC) make dev-open"
+	@echo "$(YELLOW)$(STAR) Production:$(NC)  make build && make preview-open"
 	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(GREEN)1.$(NC) make install              $(BLUE)# Install dependencies$(NC)"
-	@echo "  $(GREEN)2.$(NC) make check-env            $(BLUE)# Verify environment$(NC)"
-	@echo "  $(GREEN)3.$(NC) make dev                  $(BLUE)# Start dev server$(NC)"
-	@echo "  $(GREEN)4.$(NC) Visit: $(CYAN)http://localhost:5173$(NC)"
-	@echo ""
-	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(YELLOW)📚 Common Workflows:$(NC)"
-	@echo "$(YELLOW)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  $(CYAN)Development:$(NC)        make dev"
-	@echo "  $(CYAN)Production:$(NC)         make build && make preview"
-	@echo "  $(CYAN)Code Quality:$(NC)       make lint && make format"
-	@echo "  $(CYAN)Testing:$(NC)            make test"
-	@echo "  $(CYAN)Security:$(NC)           make audit"
-	@echo "  $(CYAN)Fresh Install:$(NC)      make clean-all && make install"
-	@echo ""
-	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(GREEN)🌐 Service URLs:$(NC)"
-	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  • Frontend:   $(CYAN)http://localhost:5173$(NC)"
-	@echo "  • Backend:    $(CYAN)http://localhost:8000$(NC)"
-	@echo ""
-	@echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "$(RED)⚠️  Important Notes:$(NC)"
-	@echo "$(RED)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
-	@echo "  • Ensure backend is running at http://localhost:8000"
-	@echo "  • Update .env file before starting development"
-	@echo "  • Run 'make check-backend' to verify API connection"
-	@echo "  • Use 'make stop' to stop the dev server"
 	@echo ""
 
-check-node:
-	@echo "$(YELLOW)🔍 Checking Node.js and npm versions...$(NC)"
-	@command -v node >/dev/null 2>&1 || { \
-		echo "$(RED)❌ Node.js not found!$(NC)"; \
-		echo "$(YELLOW)   Install from: https://nodejs.org$(NC)"; \
+# ============================================
+# 🚀 Quick Start Commands
+# ============================================
+
+setup: install check-all
+	@echo ""
+	@echo "$(GREEN)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(GREEN)║     $(CHECK) Setup Complete!                     ║$(NC)"
+	@echo "$(GREEN)╚═══════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(CYAN)Next steps:$(NC)"
+	@echo "  1. $(YELLOW)make dev-open$(NC)     $(ARROW) Start development"
+	@echo "  2. $(YELLOW)make open-login$(NC)   $(ARROW) Test login page"
+	@echo ""
+
+# ============================================
+# 💻 Development Commands
+# ============================================
+
+dev: check-env check-ports
+	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(PURPLE)║      🚀 Starting Development Server       ║$(NC)"
+	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(CYAN)  URL:$(NC) $(WHITE)$(FRONTEND_URL)$(NC)"
+	@echo "$(CYAN)  API:$(NC) $(WHITE)$(API_URL)$(NC)"
+	@echo ""
+	@echo "$(YELLOW)  Press Ctrl+C to stop$(NC)"
+	@echo ""
+	@npm run dev
+
+dev-open: check-env check-ports
+	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(PURPLE)║   🚀 Starting Dev Server (Auto-Open)      ║$(NC)"
+	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
+	@$(MAKE) open-delay &
+	@npm run dev
+
+dev-host: check-env
+	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(PURPLE)║  📡 Starting Dev Server (Network Mode)    ║$(NC)"
+	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(YELLOW)  Network access enabled$(NC)"
+	@echo ""
+	@npm run dev -- --host
+
+dev-host-open: check-env
+	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(PURPLE)║  📡 Network Dev Server (Auto-Open)        ║$(NC)"
+	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
+	@$(MAKE) open-delay &
+	@npm run dev -- --host --open
+
+dev-debug:
+	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(PURPLE)║      🐛 Debug Mode Development            ║$(NC)"
+	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
+	@DEBUG=* npm run dev
+
+# ============================================
+# 🌐 Browser Commands
+# ============================================
+
+open:
+	@echo "$(CYAN)🌐 Opening E-Bike Point...$(NC)"
+	@$(OPEN_CMD) $(FRONTEND_URL) 2>/dev/null || { \
+		echo "$(YELLOW)  Trying alternative...$(NC)"; \
+		python3 -m webbrowser $(FRONTEND_URL) 2>/dev/null || \
+		echo "$(RED)  $(CROSS) Could not open browser$(NC)"; \
+		echo "$(CYAN)  Please open manually: $(WHITE)$(FRONTEND_URL)$(NC)"; \
+	}
+
+open-delay:
+	@sleep 3 && $(MAKE) open
+
+open-login:
+	@echo "$(CYAN)🔐 Opening login page...$(NC)"
+	@$(OPEN_CMD) $(FRONTEND_URL)/login
+
+open-register:
+	@echo "$(CYAN)📝 Opening registration page...$(NC)"
+	@$(OPEN_CMD) $(FRONTEND_URL)/register
+
+open-admin:
+	@echo "$(CYAN)👨‍💼 Opening admin dashboard...$(NC)"
+	@$(OPEN_CMD) $(FRONTEND_URL)/admin/dashboard
+
+open-api:
+	@echo "$(CYAN)📡 Opening API documentation...$(NC)"
+	@$(OPEN_CMD) $(API_URL)
+
+open-build:
+	@if lsof -Pi :$(PREVIEW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "$(CYAN)📦 Opening production preview...$(NC)"; \
+		$(OPEN_CMD) http://localhost:$(PREVIEW_PORT); \
+	else \
+		echo "$(YELLOW)$(CROSS) Preview server not running$(NC)"; \
+		echo "$(CYAN)  Run: make preview-open$(NC)"; \
+	fi
+
+# ============================================
+# 🏗️ Build Commands
+# ============================================
+
+build: check-env
+	@echo "$(YELLOW)🏗️  Building for production...$(NC)"
+	@npm run build
+	@echo ""
+	@echo "$(GREEN)$(CHECK) Build complete!$(NC)"
+	@echo "$(CYAN)  Output: $(BUILD_DIR)/$(NC)"
+	@if [ -d "$(BUILD_DIR)" ]; then \
+		SIZE=$$(du -sh $(BUILD_DIR) | cut -f1); \
+		FILES=$$(find $(BUILD_DIR) -type f | wc -l | xargs); \
+		echo "$(CYAN)  Size:   $$SIZE$(NC)"; \
+		echo "$(CYAN)  Files:  $$FILES$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)Next: make preview-open$(NC)"
+
+build-check: build
+	@echo ""
+	@echo "$(YELLOW)🔍 Verifying build...$(NC)"
+	@if [ -d "$(BUILD_DIR)" ]; then \
+		echo "$(GREEN)  $(CHECK) Build directory exists$(NC)"; \
+		if [ -f "$(BUILD_DIR)/index.html" ]; then \
+			echo "$(GREEN)  $(CHECK) index.html found$(NC)"; \
+		else \
+			echo "$(RED)  $(CROSS) index.html missing$(NC)"; \
+			exit 1; \
+		fi; \
+		if [ -d "$(BUILD_DIR)/assets" ]; then \
+			echo "$(GREEN)  $(CHECK) assets directory found$(NC)"; \
+		else \
+			echo "$(RED)  $(CROSS) assets directory missing$(NC)"; \
+		fi; \
+	else \
+		echo "$(RED)  $(CROSS) Build directory missing$(NC)"; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "$(GREEN)$(CHECK) Build verification passed!$(NC)"
+
+preview: build
+	@echo "$(CYAN)👀 Starting production preview...$(NC)"
+	@echo "$(YELLOW)  URL: http://localhost:$(PREVIEW_PORT)$(NC)"
+	@echo ""
+	@npm run preview
+
+preview-open: build
+	@echo "$(CYAN)👀 Starting production preview...$(NC)"
+	@$(MAKE) open-preview-delay &
+	@npm run preview
+
+open-preview-delay:
+	@sleep 2 && $(OPEN_CMD) http://localhost:$(PREVIEW_PORT)
+
+serve: build
+	@echo "$(CYAN)🚀 Serving production build...$(NC)"
+	@npx serve $(BUILD_DIR) -p $(PREVIEW_PORT)
+
+# ============================================
+# 🧪 Testing & Quality Commands
+# ============================================
+
+test:
+	@echo "$(YELLOW)🧪 Running tests...$(NC)"
+	@npm run test 2>/dev/null || { \
+		echo "$(YELLOW)  $(CROSS) No tests configured$(NC)"; \
+		echo "$(CYAN)  Add tests with: npm install -D vitest @testing-library/react$(NC)"; \
+	}
+
+test-watch:
+	@echo "$(YELLOW)👁️  Running tests in watch mode...$(NC)"
+	@npm run test -- --watch 2>/dev/null || echo "$(YELLOW)Configure test:watch script$(NC)"
+
+test-coverage:
+	@echo "$(YELLOW)📊 Generating coverage report...$(NC)"
+	@npm run test -- --coverage 2>/dev/null || echo "$(YELLOW)Configure coverage$(NC)"
+
+lint:
+	@echo "$(YELLOW)🔍 Running ESLint...$(NC)"
+	@npm run lint 2>/dev/null || { \
+		npx eslint src --ext .js,.jsx,.ts,.tsx 2>/dev/null || \
+		echo "$(YELLOW)  ESLint not configured$(NC)"; \
+	}
+
+lint-fix:
+	@echo "$(YELLOW)🔧 Fixing ESLint errors...$(NC)"
+	@npm run lint -- --fix 2>/dev/null || { \
+		npx eslint src --ext .js,.jsx,.ts,.tsx --fix 2>/dev/null || \
+		echo "$(YELLOW)  ESLint not configured$(NC)"; \
+	}
+
+format:
+	@echo "$(YELLOW)✨ Formatting code...$(NC)"
+	@npx prettier --write "src/**/*.{js,jsx,ts,tsx,css,md}" 2>/dev/null || { \
+		echo "$(YELLOW)  Installing Prettier...$(NC)"; \
+		npm install -D prettier; \
+		npx prettier --write "src/**/*.{js,jsx,ts,tsx,css,md}"; \
+	}
+	@echo "$(GREEN)  $(CHECK) Code formatted$(NC)"
+
+format-check:
+	@echo "$(YELLOW)🔍 Checking code format...$(NC)"
+	@npx prettier --check "src/**/*.{js,jsx,ts,tsx,css,md}" 2>/dev/null || { \
+		echo "$(YELLOW)  Code needs formatting$(NC)"; \
+		echo "$(CYAN)  Run: make format$(NC)"; \
 		exit 1; \
 	}
-	@command -v npm >/dev/null 2>&1 || { \
-		echo "$(RED)❌ npm not found!$(NC)"; \
+
+quality: lint format-check test
+	@echo ""
+	@echo "$(GREEN)$(CHECK) All quality checks passed!$(NC)"
+
+# ============================================
+# 🏥 Health & Monitoring Commands
+# ============================================
+
+health: check-all
+	@echo ""
+	@echo "$(GREEN)╔═══════════════════════════════════════════╗$(NC)"
+	@echo "$(GREEN)║       🏥 System Health Report             ║$(NC)"
+	@echo "$(GREEN)╚═══════════════════════════════════════════╝$(NC)"
+	@echo ""
+	@echo "$(CYAN)Frontend Status:$(NC)"
+	@if lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "  Dev Server:    $(GREEN)$(CHECK) Running on port $(FRONTEND_PORT)$(NC)"; \
+		echo "  Access URL:    $(CYAN)$(FRONTEND_URL)$(NC)"; \
+	else \
+		echo "  Dev Server:    $(YELLOW)○ Not running$(NC)"; \
+		echo "                 $(CYAN)Run: make dev-open$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(CYAN)Backend Status:$(NC)"
+	@if curl -s -o /dev/null -w "%{http_code}" $(API_URL) | grep -q "200\|301\|302"; then \
+		echo "  API Server:    $(GREEN)$(CHECK) Accessible$(NC)"; \
+		echo "  API URL:       $(CYAN)$(API_URL)$(NC)"; \
+	else \
+		echo "  API Server:    $(RED)$(CROSS) Not accessible$(NC)"; \
+		echo "                 $(CYAN)Start with: cd ../server && make dev$(NC)"; \
+	fi
+	@echo ""
+	@if [ -d "$(BUILD_DIR)" ]; then \
+		SIZE=$$(du -sh $(BUILD_DIR) 2>/dev/null | cut -f1); \
+		echo "$(CYAN)Production Build:$(NC)"; \
+		echo "  Status:        $(GREEN)$(CHECK) Built$(NC)"; \
+		echo "  Size:          $(CYAN)$$SIZE$(NC)"; \
+		MODIFIED=$$(date -r $(BUILD_DIR) "+%Y-%m-%d %H:%M" 2>/dev/null || echo "Unknown"); \
+		echo "  Last Build:    $(CYAN)$$MODIFIED$(NC)"; \
+	else \
+		echo "$(CYAN)Production Build:$(NC)"; \
+		echo "  Status:        $(YELLOW)○ Not built$(NC)"; \
+		echo "                 $(CYAN)Run: make build$(NC)"; \
+	fi
+	@echo ""
+
+check-all: check-node check-env check-backend check-ports
+	@echo ""
+	@echo "$(GREEN)$(CHECK) All checks passed!$(NC)"
+
+check-node:
+	@echo "$(YELLOW)🔍 Checking Node.js environment...$(NC)"
+	@command -v node >/dev/null 2>&1 || { \
+		echo "$(RED)  $(CROSS) Node.js not found!$(NC)"; \
+		echo "$(CYAN)  Install from: https://nodejs.org$(NC)"; \
 		exit 1; \
 	}
 	@NODE_VERSION=$$(node -v | sed 's/v//'); \
 	NODE_MAJOR=$$(echo $$NODE_VERSION | cut -d. -f1); \
 	if [ $$NODE_MAJOR -lt 18 ]; then \
-		echo "$(RED)❌ Node.js 18+ required!$(NC)"; \
-		echo "$(YELLOW)   Current: v$$NODE_VERSION$(NC)"; \
-		echo "$(YELLOW)   Update from: https://nodejs.org$(NC)"; \
+		echo "$(RED)  $(CROSS) Node.js 18+ required!$(NC)"; \
+		echo "$(YELLOW)  Current: v$$NODE_VERSION$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(GREEN)✓ Node.js: $$(node -v)$(NC)"
-	@echo "$(GREEN)✓ npm: $$(npm -v)$(NC)"
+	@echo "$(GREEN)  $(CHECK) Node.js: $$(node -v)$(NC)"
+	@echo "$(GREEN)  $(CHECK) npm: $$(npm -v)$(NC)"
 
 check-env:
-	@echo "$(YELLOW)🔍 Checking environment file...$(NC)"
+	@echo "$(YELLOW)🔍 Checking environment...$(NC)"
 	@if [ ! -f .env ]; then \
-		echo "$(YELLOW)⚠️  .env file not found$(NC)"; \
+		echo "$(YELLOW)  ⚠️  .env file not found$(NC)"; \
 		if [ -f .env.example ]; then \
-			echo "$(CYAN)📋 Creating from .env.example...$(NC)"; \
 			cp .env.example .env; \
-			echo "$(GREEN)✓ Created .env file$(NC)"; \
-			echo "$(RED)⚠️  IMPORTANT: Please update .env with your values!$(NC)"; \
-			echo ""; \
-			echo "$(CYAN)Required configurations:$(NC)"; \
-			echo "  • VITE_API_BASE_URL=http://localhost:8000/api"; \
-			echo "  • VITE_APP_NAME=E-Bike Point"; \
-			echo ""; \
+			echo "$(GREEN)  $(CHECK) Created .env from template$(NC)"; \
+			echo "$(YELLOW)  ⚠️  Update .env with your values!$(NC)"; \
 		else \
-			echo "$(RED)❌ Please create .env file$(NC)"; \
-			echo "$(CYAN)Create .env with:$(NC)"; \
-			echo "  VITE_API_BASE_URL=http://localhost:8000/api"; \
-			echo "  VITE_APP_NAME=E-Bike Point"; \
-			echo "  VITE_AUTO_LOGOUT_HOURS=9"; \
-			echo "  VITE_FREE_SERVICES_COUNT=4"; \
-			echo "  VITE_WARRANTY_MONTHS=24"; \
-			exit 1; \
+			echo "$(CYAN)  Creating default .env...$(NC)"; \
+			echo "VITE_API_BASE_URL=http://localhost:8000/api" > .env; \
+			echo "VITE_APP_NAME=E-Bike Point" >> .env; \
+			echo "VITE_AUTO_LOGOUT_HOURS=9" >> .env; \
+			echo "VITE_FREE_SERVICES_COUNT=4" >> .env; \
+			echo "VITE_WARRANTY_MONTHS=24" >> .env; \
+			echo "$(GREEN)  $(CHECK) Created default .env$(NC)"; \
 		fi \
 	else \
-		echo "$(GREEN)✓ .env file exists$(NC)"; \
-		if grep -q "VITE_API_BASE_URL" .env; then \
-			BACKEND_URL=$$(grep VITE_API_BASE_URL .env | cut -d '=' -f2); \
-			echo "$(CYAN)  Backend URL: $$BACKEND_URL$(NC)"; \
-		fi \
+		echo "$(GREEN)  $(CHECK) .env exists$(NC)"; \
 	fi
 
 check-backend:
-	@echo "$(YELLOW)🔍 Checking backend connectivity...$(NC)"
+	@echo "$(YELLOW)🔍 Checking backend connection...$(NC)"
 	@BACKEND_URL=$$(grep VITE_API_BASE_URL .env 2>/dev/null | cut -d '=' -f2 | tr -d ' ' || echo "http://localhost:8000/api"); \
-	echo "$(CYAN)Testing: $$BACKEND_URL$(NC)"; \
 	if curl -s -o /dev/null -w "%{http_code}" $$BACKEND_URL | grep -q "200\|301\|302"; then \
-		echo "$(GREEN)✓ Backend is accessible$(NC)"; \
+		echo "$(GREEN)  $(CHECK) Backend accessible at $$BACKEND_URL$(NC)"; \
 	else \
-		echo "$(RED)✗ Backend not accessible$(NC)"; \
-		echo "$(YELLOW)  Make sure backend is running:$(NC)"; \
-		echo "  $(CYAN)cd ../server && make dev$(NC)"; \
+		echo "$(YELLOW)  ⚠️  Backend not responding$(NC)"; \
+		echo "$(CYAN)  Start backend: cd ../server && make dev$(NC)"; \
 	fi
+
+check-ports:
+	@echo "$(YELLOW)🔌 Checking ports...$(NC)"
+	@if lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "$(YELLOW)  ⚠️  Port $(FRONTEND_PORT) already in use$(NC)"; \
+		PID=$$(lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t); \
+		echo "$(CYAN)  Process PID: $$PID$(NC)"; \
+		echo "$(CYAN)  Run 'make stop' to free the port$(NC)"; \
+	else \
+		echo "$(GREEN)  $(CHECK) Port $(FRONTEND_PORT) available$(NC)"; \
+	fi
+
+monitor:
+	@echo "$(CYAN)📊 Monitoring services (Press Ctrl+C to exit)...$(NC)"
+	@echo ""
+	@while true; do \
+		clear; \
+		echo "$(CYAN)╔═══════════════════════════════════════════╗$(NC)"; \
+		echo "$(CYAN)║       📊 E-Bike Point Monitor             ║$(NC)"; \
+		echo "$(CYAN)╚═══════════════════════════════════════════╝$(NC)"; \
+		echo ""; \
+		echo "$(WHITE)Time: $$(date '+%H:%M:%S')$(NC)"; \
+		echo ""; \
+		echo -n "Frontend ($(FRONTEND_PORT)): "; \
+		lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && \
+			echo "$(GREEN)● Running$(NC)" || echo "$(RED)○ Stopped$(NC)"; \
+		echo -n "Backend  ($(BACKEND_PORT)): "; \
+		lsof -Pi :$(BACKEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && \
+			echo "$(GREEN)● Running$(NC)" || echo "$(RED)○ Stopped$(NC)"; \
+		echo -n "Preview  ($(PREVIEW_PORT)): "; \
+		lsof -Pi :$(PREVIEW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && \
+			echo "$(GREEN)● Running$(NC)" || echo "$(YELLOW)○ Stopped$(NC)"; \
+		echo ""; \
+		echo "$(CYAN)Press Ctrl+C to exit$(NC)"; \
+		sleep 2; \
+	done
+
+logs:
+	@echo "$(CYAN)📋 Recent Vite logs:$(NC)"
+	@echo ""
+	@tail -n 20 ~/.npm/_logs/*.log 2>/dev/null || echo "$(YELLOW)No recent logs found$(NC)"
+
+# ============================================
+# 📦 Dependencies Commands
+# ============================================
 
 install: check-node
 	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
-	@echo "$(PURPLE)║     🔧 Installing Frontend                ║$(NC)"
+	@echo "$(PURPLE)║     📦 Installing Dependencies            ║$(NC)"
 	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
 	@echo ""
 	@if [ -d "$(NODE_MODULES)" ]; then \
-		echo "$(YELLOW)⚠️  node_modules already exists$(NC)"; \
-		echo "$(CYAN)💡 Use 'make deps-clean' for fresh install$(NC)"; \
-		echo ""; \
+		echo "$(YELLOW)  ⚠️  node_modules exists$(NC)"; \
+		echo "$(CYAN)  Use 'make install-clean' for fresh install$(NC)"; \
 	fi
-	@echo "$(YELLOW)📦 Installing dependencies...$(NC)"
-	@npm install
-	@echo "$(GREEN)✓ Dependencies installed$(NC)"
+	@echo "$(YELLOW)Installing packages...$(NC)"
+	@npm install --silent
+	@echo "$(GREEN)$(CHECK) Dependencies installed$(NC)"
 	@echo ""
 	@$(MAKE) check-env
+
+install-clean: clean-all install
+	@echo "$(GREEN)$(CHECK) Clean installation complete!$(NC)"
+
+deps:
+	@echo "$(CYAN)📦 Installed packages:$(NC)"
 	@echo ""
-	@echo "$(GREEN)✅ Installation complete!$(NC)"
+	@npm list --depth=0 | grep -v "deduped" || echo "$(YELLOW)No dependencies$(NC)"
+
+deps-check:
+	@echo "$(YELLOW)🔍 Checking dependencies...$(NC)"
 	@echo ""
-	@echo "$(BLUE)╔══════════════════════════════════════════════╗$(NC)"
-	@echo "$(BLUE)║           📋 Next Steps                      ║$(NC)"
-	@echo "$(BLUE)╠══════════════════════════════════════════════╣$(NC)"
-	@echo "$(BLUE)║$(NC)  1. Update .env with backend URL             $(BLUE)║$(NC)"
-	@echo "$(BLUE)║$(NC)  2. Ensure backend is running                $(BLUE)║$(NC)"
-	@echo "$(BLUE)║$(NC)  3. Run 'make dev' to start                  $(BLUE)║$(NC)"
-	@echo "$(BLUE)║$(NC)  4. Visit http://localhost:5173              $(BLUE)║$(NC)"
-	@echo "$(BLUE)╚══════════════════════════════════════════════╝$(NC)"
+	@echo "$(CYAN)Outdated packages:$(NC)"
+	@npm outdated || echo "$(GREEN)  $(CHECK) All packages up to date$(NC)"
 	@echo ""
+	@echo "$(CYAN)Security audit:$(NC)"
+	@npm audit --audit-level=moderate || true
 
-dev: check-env
-	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
-	@echo "$(PURPLE)║      🚀 Starting Vite Dev Server          ║$(NC)"
-	@echo "$(PURPLE)╠═══════════════════════════════════════════╣$(NC)"
-	@echo "$(PURPLE)║       http://localhost:$(FRONTEND_PORT)               ║$(NC)"
-	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
-	@echo ""
-	@npm run dev
-
-dev-host:
-	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
-	@echo "$(PURPLE)║  🌐 Starting Dev Server (Network Access) ║$(NC)"
-	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
-	@echo ""
-	@npm run dev -- --host
-
-dev-open:
-	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
-	@echo "$(PURPLE)║  🚀 Starting Dev Server (Auto-Open)      ║$(NC)"
-	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
-	@echo ""
-	@npm run dev -- --open
-
-build:
-	@echo "$(YELLOW)🏗️  Building for production...$(NC)"
-	@npm run build
-	@echo "$(GREEN)✓ Build complete!$(NC)"
-	@echo "$(CYAN)📦 Output: $(BUILD_DIR)/$(NC)"
-	@if [ -d "$(BUILD_DIR)" ]; then \
-		SIZE=$$(du -sh $(BUILD_DIR) | cut -f1); \
-		echo "$(CYAN)📊 Build size: $$SIZE$(NC)"; \
-	fi
-
-build-check: build
-	@echo ""
-	@echo "$(YELLOW)🔍 Checking build for errors...$(NC)"
-	@if [ -d "$(BUILD_DIR)" ]; then \
-		echo "$(GREEN)✓ Build directory exists$(NC)"; \
-		if [ -f "$(BUILD_DIR)/index.html" ]; then \
-			echo "$(GREEN)✓ index.html found$(NC)"; \
-		else \
-			echo "$(RED)✗ index.html missing$(NC)"; \
-		fi \
-	else \
-		echo "$(RED)✗ Build directory missing$(NC)"; \
-	fi
-
-preview: build
-	@echo "$(CYAN)👀 Previewing production build...$(NC)"
-	@npm run preview
-
-build-analyze:
-	@echo "$(YELLOW)📊 Analyzing bundle size...$(NC)"
-	@npm run build -- --mode analyze 2>/dev/null || { \
-		echo "$(YELLOW)⚠️  Bundle analyzer not configured$(NC)"; \
-		echo "$(CYAN)Install: npm install -D rollup-plugin-visualizer$(NC)"; \
-	}
-
-test:
-	@echo "$(YELLOW)🧪 Running tests...$(NC)"
-	@npm run test 2>/dev/null || { \
-		echo "$(YELLOW)⚠️  No tests configured$(NC)"; \
-		echo "$(CYAN)Add Vitest: npm install -D vitest$(NC)"; \
-	}
-
-lint:
-	@echo "$(YELLOW)🔍 Running ESLint...$(NC)"
-	@npm run lint 2>/dev/null || { \
-		npx eslint src --ext .js,.jsx,.ts,.tsx 2>/dev/null || { \
-			echo "$(YELLOW)⚠️  ESLint not configured$(NC)"; \
-		}; \
-	}
-
-lint-fix:
-	@echo "$(YELLOW)🔧 Fixing ESLint errors...$(NC)"
-	@npm run lint:fix 2>/dev/null || { \
-		npx eslint src --ext .js,.jsx,.ts,.tsx --fix 2>/dev/null || { \
-			echo "$(YELLOW)⚠️  ESLint not configured$(NC)"; \
-		}; \
-	}
-
-format:
-	@echo "$(YELLOW)✨ Formatting code with Prettier...$(NC)"
-	@npx prettier --write src/ 2>/dev/null || { \
-		echo "$(YELLOW)⚠️  Prettier not installed$(NC)"; \
-		echo "$(CYAN)Install: npm install -D prettier$(NC)"; \
-	}
-	@echo "$(GREEN)✓ Code formatted$(NC)"
-
-format-check:
-	@echo "$(YELLOW)🔍 Checking code formatting...$(NC)"
-	@npx prettier --check src/ 2>/dev/null || { \
-		echo "$(YELLOW)⚠️  Prettier not installed$(NC)"; \
-	}
-
-typecheck:
-	@echo "$(YELLOW)🔍 Running TypeScript type check...$(NC)"
-	@npx tsc --noEmit 2>/dev/null || { \
-		echo "$(YELLOW)⚠️  TypeScript not configured$(NC)"; \
-	}
+deps-update:
+	@echo "$(YELLOW)⬆️  Updating dependencies...$(NC)"
+	@npm update
+	@echo "$(GREEN)$(CHECK) Dependencies updated$(NC)"
+	@echo "$(CYAN)Run 'make audit' to check for vulnerabilities$(NC)"
 
 audit:
 	@echo "$(YELLOW)🔒 Running security audit...$(NC)"
 	@npm audit
 	@echo ""
-	@echo "$(CYAN)💡 Use 'make audit-fix' to fix issues$(NC)"
+	@echo "$(CYAN)To fix issues: make audit-fix$(NC)"
 
 audit-fix:
-	@echo "$(YELLOW)🔧 Fixing security vulnerabilities...$(NC)"
+	@echo "$(YELLOW)🔧 Fixing vulnerabilities...$(NC)"
 	@npm audit fix
-	@echo "$(GREEN)✓ Audit fixes applied$(NC)"
+	@echo "$(GREEN)$(CHECK) Security fixes applied$(NC)"
 
-deps:
-	@echo "$(CYAN)📋 Installed dependencies:$(NC)"
-	@npm list --depth=0
-
-deps-outdated:
-	@echo "$(YELLOW)📋 Checking for outdated packages...$(NC)"
-	@npm outdated || echo "$(GREEN)✓ All packages up to date$(NC)"
-
-deps-update:
-	@echo "$(YELLOW)⬆️  Updating all dependencies...$(NC)"
-	@npm update
-	@echo "$(GREEN)✓ Dependencies updated$(NC)"
-	@echo "$(CYAN)💡 Run 'make audit' to check for issues$(NC)"
-
-deps-update-minor:
-	@echo "$(YELLOW)⬆️  Updating minor versions only...$(NC)"
-	@npm update --depth 0
-	@echo "$(GREEN)✓ Minor updates applied$(NC)"
-
-deps-clean:
-	@echo "$(RED)🧹 Removing node_modules...$(NC)"
-	@rm -rf $(NODE_MODULES)
-	@rm -rf package-lock.json
-	@echo "$(GREEN)✓ Cleaned$(NC)"
-	@echo ""
-	@echo "$(YELLOW)📦 Reinstalling dependencies...$(NC)"
-	@npm install
-	@echo "$(GREEN)✓ Fresh installation complete$(NC)"
+# ============================================
+# 🧹 Cleanup Commands
+# ============================================
 
 clean:
-	@echo "$(RED)🧹 Cleaning build files and cache...$(NC)"
-	@rm -rf $(BUILD_DIR)
-	@rm -rf .vite
-	@rm -rf node_modules/.vite
-	@rm -rf .eslintcache
-	@echo "$(GREEN)✓ Cleaned build files$(NC)"
+	@echo "$(RED)🧹 Cleaning build artifacts...$(NC)"
+	@rm -rf $(BUILD_DIR) .vite node_modules/.vite .eslintcache
+	@echo "$(GREEN)$(CHECK) Build artifacts cleaned$(NC)"
 
 clean-all: clean
-	@echo "$(RED)🧹 Deep cleaning (removing node_modules)...$(NC)"
-	@rm -rf $(NODE_MODULES)
-	@rm -rf package-lock.json
-	@echo "$(GREEN)✓ Deep clean complete$(NC)"
-	@echo "$(CYAN)💡 Run 'make install' to reinstall$(NC)"
+	@echo "$(RED)🧹 Deep cleaning...$(NC)"
+	@rm -rf $(NODE_MODULES) package-lock.json
+	@echo "$(GREEN)$(CHECK) Deep clean complete$(NC)"
+
+reset: clean-all
+	@echo "$(RED)🔄 Resetting project...$(NC)"
+	@git checkout package.json 2>/dev/null || true
+	@git checkout package-lock.json 2>/dev/null || true
+	@echo "$(GREEN)$(CHECK) Project reset$(NC)"
+	@echo "$(CYAN)Run 'make setup' to reinstall$(NC)"
+
+backup:
+	@echo "$(YELLOW)💾 Creating backup...$(NC)"
+	@mkdir -p backups
+	@tar -czf backups/frontend-backup-$$(date +%Y%m%d-%H%M%S).tar.gz \
+		--exclude=node_modules \
+		--exclude=dist \
+		--exclude=.vite \
+		--exclude=backups \
+		.
+	@echo "$(GREEN)$(CHECK) Backup created in backups/$(NC)"
+
+# ============================================
+# 🛠️ Utility Commands
+# ============================================
 
 stop:
-	@echo "$(RED)🛑 Stopping development server...$(NC)"
+	@echo "$(RED)🛑 Stopping all servers...$(NC)"
 	@lsof -ti:$(FRONTEND_PORT) | xargs kill -9 2>/dev/null || true
-	@echo "$(GREEN)✓ Server stopped$(NC)"
+	@lsof -ti:$(PREVIEW_PORT) | xargs kill -9 2>/dev/null || true
+	@echo "$(GREEN)$(CHECK) All servers stopped$(NC)"
 
-restart: stop dev
+restart: stop dev-open
 
 status:
+	@echo ""
 	@echo "$(PURPLE)╔═══════════════════════════════════════════╗$(NC)"
 	@echo "$(PURPLE)║        📊 Frontend Status                 ║$(NC)"
 	@echo "$(PURPLE)╚═══════════════════════════════════════════╝$(NC)"
 	@echo ""
-	@echo "$(CYAN)Installation:$(NC)"
-	@echo "  Node.js: $(shell node -v 2>/dev/null || echo '$(RED)✗ Not installed$(NC)')"
-	@echo "  npm: $(shell npm -v 2>/dev/null || echo '$(RED)✗ Not installed$(NC)')"
-	@echo "  Dependencies: $(shell [ -d $(NODE_MODULES) ] && echo '$(GREEN)✓ Installed$(NC)' || echo '$(RED)✗ Not installed$(NC)')"
+	@echo "$(CYAN)Environment:$(NC)"
+	@echo "  Node.js:      $$(node -v 2>/dev/null || echo '$(RED)Not installed$(NC)')"
+	@echo "  npm:          $$(npm -v 2>/dev/null || echo '$(RED)Not installed$(NC)')"
+	@echo "  Dependencies: $$([ -d $(NODE_MODULES) ] && echo '$(GREEN)$(CHECK) Installed$(NC)' || echo '$(RED)$(CROSS) Not installed$(NC)')"
 	@if [ -d $(NODE_MODULES) ]; then \
 		PKG_COUNT=$$(ls -1 $(NODE_MODULES) | wc -l | xargs); \
-		echo "    Packages: $(GREEN)$$PKG_COUNT installed$(NC)"; \
+		echo "  Packages:     $(CYAN)$$PKG_COUNT installed$(NC)"; \
 	fi
 	@echo ""
-	@echo "$(CYAN)Environment:$(NC)"
-	@echo "  .env file: $(shell [ -f .env ] && echo '$(GREEN)✓ Exists$(NC)' || echo '$(RED)✗ Missing$(NC)')"
-	@if [ -f .env ]; then \
-		if grep -q "VITE_API_BASE_URL" .env; then \
-			BACKEND=$$(grep VITE_API_BASE_URL .env | cut -d '=' -f2 | tr -d ' '); \
-			echo "    Backend: $(CYAN)$$BACKEND$(NC)"; \
-		fi \
+	@echo "$(CYAN)Configuration:$(NC)"
+	@echo "  .env file:    $$([ -f .env ] && echo '$(GREEN)$(CHECK) Present$(NC)' || echo '$(RED)$(CROSS) Missing$(NC)')"
+	@if [ -f .env ] && grep -q "VITE_API_BASE_URL" .env; then \
+		API=$$(grep VITE_API_BASE_URL .env | cut -d '=' -f2); \
+		echo "  API URL:      $(CYAN)$$API$(NC)"; \
 	fi
 	@echo ""
 	@echo "$(CYAN)Services:$(NC)"
-	@echo "  Dev Server: $(shell lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && echo '$(GREEN)✓ Running :$(FRONTEND_PORT)$(NC)' || echo '$(YELLOW)○ Stopped$(NC)')"
+	@echo -n "  Dev Server:   "
+	@if lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "$(GREEN)$(CHECK) Running on port $(FRONTEND_PORT)$(NC)"; \
+	else \
+		echo "$(YELLOW)○ Not running$(NC)"; \
+	fi
+	@echo -n "  Preview:      "
+	@if lsof -Pi :$(PREVIEW_PORT) -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "$(GREEN)$(CHECK) Running on port $(PREVIEW_PORT)$(NC)"; \
+	else \
+		echo "$(YELLOW)○ Not running$(NC)"; \
+	fi
 	@echo ""
 	@echo "$(CYAN)Build:$(NC)"
-	@echo "  Build dir: $(shell [ -d $(BUILD_DIR) ] && echo '$(GREEN)✓ Exists$(NC)' || echo '$(YELLOW)○ Not built$(NC)')"
 	@if [ -d $(BUILD_DIR) ]; then \
-		SIZE=$$(du -sh $(BUILD_DIR) 2>/dev/null | cut -f1); \
-		echo "    Size: $(CYAN)$$SIZE$(NC)"; \
+		echo "  Status:       $(GREEN)$(CHECK) Built$(NC)"; \
+		SIZE=$$(du -sh $(BUILD_DIR) | cut -f1); \
+		echo "  Size:         $(CYAN)$$SIZE$(NC)"; \
+	else \
+		echo "  Status:       $(YELLOW)○ Not built$(NC)"; \
 	fi
 	@echo ""
 
-quick-check:
-	@echo "$(CYAN)Quick Status Check:$(NC)"
-	@echo -n "Node.js: "; command -v node >/dev/null 2>&1 && echo "$(GREEN)✓$(NC)" || echo "$(RED)✗$(NC)"
-	@echo -n "npm: "; command -v npm >/dev/null 2>&1 && echo "$(GREEN)✓$(NC)" || echo "$(RED)✗$(NC)"
-	@echo -n "Dependencies: "; [ -d $(NODE_MODULES) ] && echo "$(GREEN)✓$(NC)" || echo "$(RED)✗$(NC)"
-	@echo -n "Dev Server: "; lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && echo "$(GREEN)✓$(NC)" || echo "$(RED)✗$(NC)"
-	@echo -n "Backend: "; curl -s -o /dev/null -w "%{http_code}" $(BACKEND_URL) | grep -q "200\|301\|302" && echo "$(GREEN)✓$(NC)" || echo "$(RED)✗$(NC)"
+quick-status:
+	@echo -n "Frontend: "; \
+	lsof -Pi :$(FRONTEND_PORT) -sTCP:LISTEN -t >/dev/null 2>&1 && \
+		echo "$(GREEN)●$(NC)" || echo "$(RED)○$(NC)"
+	@echo -n "Backend:  "; \
+	curl -s -o /dev/null -w "%{http_code}" $(API_URL) | grep -q "200\|301\|302" && \
+		echo "$(GREEN)●$(NC)" || echo "$(RED)○$(NC)"
+
+info:
+	@echo "$(CYAN)E-Bike Point ERP - Frontend$(NC)"
+	@echo "=========================="
+	@echo "Framework:     React + Vite"
+	@echo "UI Library:    Tailwind CSS"
+	@echo "State Mgmt:    Zustand"
+	@echo "API Client:    Axios + React Query"
+	@echo "Dev Port:      $(FRONTEND_PORT)"
+	@echo "Preview Port:  $(PREVIEW_PORT)"
+	@echo "Backend URL:   $(BACKEND_URL)"
 
 version:
-	@echo "$(CYAN)E-Bike Point ERP Frontend$(NC)"
-	@echo "Framework: React + Vite"
-	@echo "Node.js: $(shell node -v)"
-	@echo "npm: $(shell npm -v)"
+	@echo "$(CYAN)Version Information:$(NC)"
+	@echo "==================="
 	@if [ -f package.json ]; then \
-		VERSION=$$(grep '"version"' package.json | head -1 | cut -d '"' -f4); \
-		echo "Version: $$VERSION"; \
+		APP_VERSION=$$(grep '"version"' package.json | head -1 | cut -d '"' -f4); \
+		echo "App Version:   $$APP_VERSION"; \
 	fi
+	@echo "Node.js:       $$(node -v)"
+	@echo "npm:           $$(npm -v)"
+	@VITE_VERSION=$$(npm list vite 2>/dev/null | grep "vite@" | head -1 | sed 's/.*vite@//'); \
+	[ -n "$$VITE_VERSION" ] && echo "Vite:          $$VITE_VERSION"
+	@REACT_VERSION=$$(npm list react 2>/dev/null | grep " react@" | head -1 | sed 's/.*react@//'); \
+	[ -n "$$REACT_VERSION" ] && echo "React:         $$REACT_VERSION"
 
-# Aliases
-server: dev
-run: dev
-start: dev
-install-deps: install
-update: deps-update
-sec-audit: audit
+# ============================================
+# Aliases for convenience
+# ============================================
 
-.DEFAULT_GOAL := help
+start: dev-open
+s: dev-open
+d: dev
+do: dev-open
+b: build
+p: preview-open
+t: test
+l: lint
+f: format
+i: install
+c: clean
+h: help
+
+# Common typos
+sever: dev
+srever: dev
+dve: dev
+biuld: build
+isntall: install
+clen: clean
